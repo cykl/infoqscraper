@@ -39,6 +39,9 @@ import sys
 
 __author__ = 'mathieuc'
 
+class InfoQException(Exception):
+    pass
+
 class InfoQPresentationDumper:
     _baseUrl = "http://www.infoq.com/presentations/"
 
@@ -47,7 +50,7 @@ class InfoQPresentationDumper:
     _slidesRegexp    = re.compile('var slides *= *new Array.(?P<list>.+).;')
     _durationRegexp  = re.compile(r'Duration: (?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2}).(?P<centiseconds>[0-9]{2})')
 
-    def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False):
+    def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False, verbose=False):
         if presentation.startswith("http://"):
             self.url = url
         else:
@@ -58,6 +61,7 @@ class InfoQPresentationDumper:
         self.rtmpdump  = rtmpdump
 
         self.earlyClean = earlyClean
+        self.verbose    = verbose
         if quiet:
             self.stdout = open(os.devnull, 'w')
             self.stderr = open(os.devnull, 'w')
@@ -72,9 +76,14 @@ class InfoQPresentationDumper:
             self.slides    = self._getSlides()
             assert self.name
             assert len(self.timeCodes) == len(self.slides) + 1
+            self._log("timecodes: %s" % self.timeCodes)
+            self._log("slides: %s" % self.slides)
         except (urllib2.URLError, urllib2.HTTPError) as e:
-            raise Exception("Failed to retrieve: %s" % self.url)
+            raise InfoQException("Failed to retrieve: %s" % self.url)
 
+    def _log(self, msg):
+        if self.verbose:
+            print msg
 
     def _getName(self):
         groups = InfoQPresentationDumper._nameRegexp.search(self.pageData)
@@ -94,6 +103,7 @@ class InfoQPresentationDumper:
     def _downloadVideo(self, tmpDir):
         videoPath = os.path.join(tmpDir, "%s.mp4" % self.name)
         videoUrl = "rtmpe://video.infoq.com/cfx/st/presentations/%s.mp4" % self.name
+        self._log("Downloading video from %s" % videoUrl)
         cmd = [self.rtmpdump, '-r', videoUrl, "-o", videoPath]
         ret = subprocess.call(cmd, stdout=self.stdout, stderr = self.stderr)
         assert ret == 0
@@ -124,6 +134,7 @@ class InfoQPresentationDumper:
         slidePath = self.slides[slideIndex]
         slideUrl  = "http://www.infoq.com%s" % slidePath
 
+        self._log("Downloading slide %s from %s" % (slideIndex, slideUrl))
         swfPath = os.path.join(tmpDir, "slide-%s.swf" % slideIndex)
         data = urllib2.urlopen(slideUrl).read()
         with open(swfPath, 'w') as f:
@@ -139,6 +150,7 @@ class InfoQPresentationDumper:
 
         jpgSlidePath = swfSlidePath.replace(".swf", ".jpg")
         Image.open(pngSlidePath).convert('RGB').save(jpgSlidePath, 'jpeg')
+        self._log("Converting slide to JPEG: %s -> %s" % (swfSlidePath, jpgSlidePath))
 
         os.unlink(pngSlidePath)
         return jpgSlidePath
@@ -148,6 +160,7 @@ class InfoQPresentationDumper:
             os.unlink(path)
 
     def _createVideo(self, audioPath, slidePattern, outputPath):
+        self._log("Creating final video %s" % outputPath)
         cmd = [self.ffmpeg, "-f", "image2", "-r", "1", "-i", slidePattern, "-i", audioPath, outputPath]
         ret = subprocess.call(cmd, stdout=self.stdout, stderr=self.stderr)
         assert ret == 0
@@ -213,6 +226,7 @@ def main():
     parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, action=store_check, default="rtmpdump" , help='rtmpdump binary')
     parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
     parser.add_argument('-q', '--quiet'    , action='store_true', help='quiet mode')
+    parser.add_argument('-d', '--debug'    , action='store_true', help='debug mode')
 
     parser.add_argument('name', help='name of the presentation or url')
 
@@ -226,13 +240,14 @@ def main():
             ffmpeg=args.ffmpeg,
             swfrender=args.swfrender,
             rtmpdump=args.rtmpdump,
-            quiet=args.quiet
+            quiet=args.quiet,
+            verbose=args.debug
             )
 
         path = dumper.save(args.output)
         return 0
 
-    except Exception as e:
+    except InfoQException as e:
         print >> sys.stderr, e
         return 1
     except  KeyboardInterrupt:
