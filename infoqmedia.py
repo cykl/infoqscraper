@@ -33,6 +33,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import urllib2
 import argparse
 import sys
@@ -41,6 +42,19 @@ __author__ = 'mathieuc'
 
 class InfoQException(Exception):
     pass
+
+class _SlideFetcherThread(threading.Thread):
+    def __init__(self, jpgSlidesPath, dumper, tmpDir):
+        threading.Thread.__init__(self)
+        self.dumper = dumper
+        self.tmpDir = tmpDir
+        self.jpgSlidesPath = jpgSlidesPath
+
+    def run(self):
+        for slideIndex in xrange(len(self.dumper.slides)):
+            swfSlidePath = self.dumper._downloadSlide(self.tmpDir, slideIndex)
+            self.jpgSlidesPath.append(self.dumper._convertSlideToJpeg(swfSlidePath))
+            self.dumper._earlyUnlink(swfSlidePath)
 
 class InfoQPresentationDumper:
     _baseUrl = "http://www.infoq.com/presentations/"
@@ -174,24 +188,28 @@ class InfoQPresentationDumper:
             tmpDir = tempfile.mkdtemp()
 
         try:
+            # Fetch slides while downloading the video. Fetching slides can take a significant amount of time
+            jpgSlidesPath = []
+            t = _SlideFetcherThread(jpgSlidesPath, self, tmpDir)
+            t.start()
+
             videoPath = self._downloadVideo(tmpDir)
             audioPath = self._extractAudio(tmpDir, videoPath)
             duration  = self._getDuration(audioPath)
             self.timeCodes.append(duration)
             self._earlyUnlink(videoPath)
 
+            if t.is_alive:
+                self._log("Video downloading finished. Waiting for the slide fetcher")
+                t.join()
+
             frame = 0
             for slideIndex in xrange(len(self.slides)):
-
-                swfSlidePath = self._downloadSlide(tmpDir, slideIndex)
-                jpgSlidePath = self._convertSlideToJpeg(swfSlidePath)
-                self._earlyUnlink(swfSlidePath)
-
                 for remaining  in xrange(self.timeCodes[slideIndex], self.timeCodes[slideIndex+1]):
-                    os.link(jpgSlidePath, os.path.join(tmpDir, "frame-{0:04d}.jpg".format(frame)))
+                    os.link(jpgSlidesPath[slideIndex], os.path.join(tmpDir, "frame-{0:04d}.jpg".format(frame)))
                     frame += 1
 
-                self._earlyUnlink(jpgSlidePath)
+                self._earlyUnlink(jpgSlidesPath[slideIndex])
 
             return self._createVideo(audioPath, os.path.join(tmpDir, "frame-%04d.jpg"), outputPath)
 
