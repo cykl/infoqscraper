@@ -235,6 +235,8 @@ def main():
     except Exception as e:
         print >> sys.stderr, e
         return 1
+    except  KeyboardInterrupt:
+        print >> sys.stderr, "Aborted."
 
 if __name__ == "__main__":
     sys.exit(main())
