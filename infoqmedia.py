@@ -62,7 +62,7 @@ class InfoQPresentationDumper:
     _slidesRegexp    = re.compile('var slides *= *new Array.(?P<list>.+).;')
     _durationRegexp  = re.compile(r'Duration: (?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2}).(?P<centiseconds>[0-9]{2})')
 
-    def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False, verbose=False):
+    def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False, verbose=False, jpeg=False):
         if presentation.startswith("http://"):
             self.url = url
         else:
@@ -74,6 +74,7 @@ class InfoQPresentationDumper:
 
         self.earlyClean = earlyClean
         self.verbose    = verbose
+        self.jpeg       = jpeg
         if quiet:
             self.stdout = open(os.devnull, 'w')
             self.stderr = open(os.devnull, 'w')
@@ -161,12 +162,16 @@ class InfoQPresentationDumper:
         ret = subprocess.call(cmd, stdout=self.stdout, stderr=self.stderr)
         assert ret == 0
 
-        jpgSlidePath = swfSlidePath.replace(".swf", ".jpg")
-        Image.open(pngSlidePath).convert('RGB').save(jpgSlidePath, 'jpeg')
-        self._log("Converting slide to JPEG: %s -> %s" % (swfSlidePath, jpgSlidePath))
+        if not self.jpeg:
+            return pngSlidePath
+        else:
+            jpgSlidePath = swfSlidePath.replace(".swf", ".jpg")
+            Image.open(pngSlidePath).convert('RGB').save(jpgSlidePath, 'jpeg')
+            self._log("Converting slide to JPEG: %s -> %s" % (swfSlidePath, jpgSlidePath))
 
-        os.unlink(pngSlidePath)
-        return jpgSlidePath
+            os.unlink(pngSlidePath)
+            return jpgSlidePath
+
 
     def _earlyUnlink(self, path):
         if self.earlyClean:
@@ -179,6 +184,13 @@ class InfoQPresentationDumper:
         assert ret == 0
         return outputPath
 
+
+    def _getSlideExtension(self):
+        if self.jpeg:
+            return "jpg"
+        else:
+            return "png"
+
     def save(self, outputPath, tmpDir=None):
         if tmpDir:
             assert os.path.exists(tmpDir) and os.path.isdir(tmpDir)
@@ -187,8 +199,8 @@ class InfoQPresentationDumper:
 
         try:
             # Fetch slides while downloading the video. Fetching slides can take a significant amount of time
-            jpgSlidesPath = []
-            t = _SlideFetcherThread(jpgSlidesPath, self, tmpDir)
+            slidesPath = []
+            t = _SlideFetcherThread(slidesPath, self, tmpDir)
             t.start()
 
             videoPath = self._downloadVideo(tmpDir)
@@ -204,12 +216,12 @@ class InfoQPresentationDumper:
             frame = 0
             for slideIndex in xrange(len(self.slides)):
                 for remaining  in xrange(self.timeCodes[slideIndex], self.timeCodes[slideIndex+1]):
-                    os.link(jpgSlidesPath[slideIndex], os.path.join(tmpDir, "frame-{0:04d}.jpg".format(frame)))
+                    os.link(slidesPath[slideIndex], os.path.join(tmpDir, "frame-{0:04d}.{1}".format(frame, self._getSlideExtension())))
                     frame += 1
 
-                self._earlyUnlink(jpgSlidesPath[slideIndex])
+                self._earlyUnlink(slidesPath[slideIndex])
 
-            return self._createVideo(audioPath, os.path.join(tmpDir, "frame-%04d.jpg"), outputPath)
+            return self._createVideo(audioPath, os.path.join(tmpDir, "frame-%04d." + self._getSlideExtension()), outputPath)
 
         finally:
             shutil.rmtree(tmpDir)
@@ -233,6 +245,7 @@ def main():
     parser.add_argument('-s', '--swfrender', nargs="?", type=str, action=store_check, default="swfrender", help='swfrender binary')
     parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, action=store_check, default="rtmpdump" , help='rtmpdump binary')
     parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
+    parser.add_argument('-j', '--jpeg'     , action="store_true", help='Use JPEG rather than PNG (for buggy ffmpeg versions)')
     parser.add_argument('-q', '--quiet'    , action='store_true', help='quiet mode')
     parser.add_argument('-d', '--debug'    , action='store_true', help='debug mode')
 
@@ -249,7 +262,8 @@ def main():
             swfrender=args.swfrender,
             rtmpdump=args.rtmpdump,
             quiet=args.quiet,
-            verbose=args.debug
+            verbose=args.debug,
+            jpeg=args.jpeg
             )
 
         path = dumper.save(args.output)
