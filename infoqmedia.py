@@ -38,8 +38,6 @@ import urllib2
 import argparse
 import sys
 
-__author__ = 'mathieuc'
-
 class InfoQException(Exception):
     pass
 
