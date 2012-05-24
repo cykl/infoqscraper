@@ -73,6 +73,7 @@ class InfoQPresentationDumper:
             self.pageData  = urllib2.urlopen(self.url).read()
             self.name      = self._getName()
             self.timeCodes = self._getTimecodes()
+            self.timeCodes[0] = 0
             self.slides    = self._getSlides()
             assert self.name
             assert len(self.timeCodes) == len(self.slides) + 1
@@ -176,29 +177,20 @@ class InfoQPresentationDumper:
             videoPath = self._downloadVideo(tmpDir)
             audioPath = self._extractAudio(tmpDir, videoPath)
             duration  = self._getDuration(audioPath)
-
+            self.timeCodes.append(duration)
             self._earlyUnlink(videoPath)
 
             frame = 0
-            for timecodeIndex in xrange(1, len(self.timeCodes)):
-                slideIndex = timecodeIndex - 1
+            for slideIndex in xrange(len(self.slides)):
 
                 swfSlidePath = self._downloadSlide(tmpDir, slideIndex)
                 jpgSlidePath = self._convertSlideToJpeg(swfSlidePath)
                 self._earlyUnlink(swfSlidePath)
 
-                for remaining  in xrange(self.timeCodes[timecodeIndex-1], self.timeCodes[timecodeIndex]):
+                for remaining  in xrange(self.timeCodes[slideIndex], self.timeCodes[slideIndex+1]):
                     os.link(jpgSlidePath, os.path.join(tmpDir, "frame-{0:04d}.jpg".format(frame)))
                     frame += 1
 
-                self._earlyUnlink(jpgSlidePath)
-
-            # Handle last slide
-            swfSlidePath = self._downloadSlide(tmpDir, len(self.slides)-1)
-            jpgSlidePath = self._convertSlideToJpeg(swfSlidePath)
-            self._earlyUnlink(swfSlidePath)
-            while frame < duration:
-                os.link(jpgSlidePath, os.path.join(tmpDir, "frame-{0:4d}.png".format(frame)))
                 self._earlyUnlink(jpgSlidePath)
 
             return self._createVideo(audioPath, os.path.join(tmpDir, "frame-%04d.jpg"), outputPath)
