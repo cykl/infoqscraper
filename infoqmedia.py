@@ -64,7 +64,7 @@ class InfoQPresentationDumper:
 
     def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False, verbose=False, jpeg=False):
         if presentation.startswith("http://"):
-            self.url = url
+            self.url = presentation
         else:
             self.url = InfoQPresentationDumper._baseUrl + presentation
 
