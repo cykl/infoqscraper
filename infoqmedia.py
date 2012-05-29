@@ -115,13 +115,21 @@ class InfoQPresentationDumper:
         return map(lambda x: x.replace('\'', ''), groups.groupdict()['list'].split(','))
 
     def _downloadVideo(self, tmpDir):
-        videoPath = os.path.join(tmpDir, "%s.flv" % self.name)
-        videoUrl = "rtmpe://video.infoq.com/cfx/st/presentations/%s.flv" % self.name
-        self._log("Downloading video from %s" % videoUrl)
-        cmd = [self.rtmpdump, '-r', videoUrl, "-o", videoPath]
-        ret = subprocess.call(cmd, stdout=self.stdout, stderr = self.stderr)
-        assert ret == 0, cmd
-        return videoPath
+        endings = ("mp4", "flv") # get mp4 if we can, but some older stuff is only in flv
+        tried = []
+        for ending in endings:
+            videoPath = os.path.join(tmpDir, "%s.%s" % (self.name, ending))
+            videoUrl = "rtmpe://video.infoq.com/cfx/st/presentations/%s.%s" % (self.name, ending)
+            tried.append(videoUrl)
+            self._log("Downloading video from %s" % videoUrl)
+            cmd = [self.rtmpdump, '-r', videoUrl, "-o", videoPath]
+            ret = subprocess.call(cmd, stdout=self.stdout, stderr = self.stderr)
+            if ret == 0:
+                return videoPath
+            elif ret != 1: # 1 == couldn't get the specified URL
+                break
+            print "Couldn't get %s, trying other URLs..." % videoUrl
+        raise Exception, "Couldn't retrieve file. Tried %s"% ("".join(tried))
 
     def _extractAudio(self, tmpDir, videoPath):
         audioPath = os.path.join(tmpDir, "%s.mp3" % self.name)
