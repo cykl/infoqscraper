@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 from PIL import Image
+import base64
 import os
 import re
 import shutil
@@ -61,6 +62,7 @@ class InfoQPresentationDumper:
     _timecodesRegexp = re.compile('var *TIMES *= *new Array\\((?P<list>.+)\\);')
     _slidesRegexp    = re.compile('var slides *= *new Array.(?P<list>.+).;')
     _durationRegexp  = re.compile(r'Duration: (?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2}).(?P<centiseconds>[0-9]{2})')
+    _videoRegexp     = re.compile(r'var jsclassref=\'(?P<video>.*)\';')
 
     def __init__(self, presentation, ffmpeg="ffmpeg", swfrender="swfrender", rtmpdump="rtmpdump", earlyClean=True, quiet=False, verbose=False, jpeg=False):
         if presentation.startswith("http://"):
@@ -85,6 +87,7 @@ class InfoQPresentationDumper:
         try:
             self.pageData  = urllib2.urlopen(self.url).read()
             self.name      = self._getName()
+            self.videoName = self._getVideoName()
             self.timeCodes = self._getTimecodes()
             self.timeCodes[0] = 0
             self.slides    = self._getSlides()
@@ -114,22 +117,22 @@ class InfoQPresentationDumper:
         assert groups
         return map(lambda x: x.replace('\'', ''), groups.groupdict()['list'].split(','))
 
+    def _getVideoName(self):
+        groups = InfoQPresentationDumper._videoRegexp.search(self.pageData)
+        assert groups
+        asBase64 = groups.groupdict()['video']
+        clear =  base64.b64decode(asBase64)
+        return clear.replace('presentations/', '')
+
     def _downloadVideo(self, tmpDir):
-        endings = ("mp4", "flv") # get mp4 if we can, but some older stuff is only in flv
-        tried = []
-        for ending in endings:
-            videoPath = os.path.join(tmpDir, "%s.%s" % (self.name, ending))
-            videoUrl = "rtmpe://video.infoq.com/cfx/st/presentations/%s.%s" % (self.name, ending)
-            tried.append(videoUrl)
-            self._log("Downloading video from %s" % videoUrl)
-            cmd = [self.rtmpdump, '-r', videoUrl, "-o", videoPath]
-            ret = subprocess.call(cmd, stdout=self.stdout, stderr = self.stderr)
-            if ret == 0:
-                return videoPath
-            elif ret != 1: # 1 == couldn't get the specified URL
-                break
-            print "Couldn't get %s, trying other URLs..." % videoUrl
-        raise Exception, "Couldn't retrieve file. Tried %s"% ("".join(tried))
+        print self.videoName
+        videoPath = os.path.join(tmpDir, "%s" % self.videoName)
+        videoUrl = "rtmpe://video.infoq.com/cfx/st/presentations/%s" % self.videoName
+        self._log("Downloading video from %s" % videoUrl)
+        cmd = [self.rtmpdump, '-r', videoUrl, "-o", videoPath]
+        ret = subprocess.call(cmd, stdout=self.stdout, stderr = self.stderr)
+        assert ret == 0, cmd
+        return videoPath
 
     def _extractAudio(self, tmpDir, videoPath):
         audioPath = os.path.join(tmpDir, "%s.mp3" % self.name)
