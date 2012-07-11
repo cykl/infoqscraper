@@ -8,7 +8,7 @@ downloading the video you only get the audio track and a video of the presenter 
 `infoqmedia` downloads both the original video and the slides to build a new video containing the audio track
 and the slides.
 
-`infqlisting` allows to list the latest presentations or search for a specific presentation or topic using a regex. 
+`infoqlisting` allows to list the latest presentations or search for a specific presentation or topic using a regex. 
 You no longer have to follow the RSS feed or go to the website to discover interesting presentations.
 
 ## infoqmedia usage
@@ -26,7 +26,7 @@ The following command display the fifteen latest presentations.
 You can also search for a specific topic.
  `./infoqlisting -p agile`
 
-By default `infoqlisting` displays at most 10 hits and run the query on the latest 80 entries. 
+By default `infoqlisting` displays at most 10 hits and runs the query on the latest 80 entries. 
 The `-n` and `-m` options can be used to display more hits or to query more entries.  Please be a good web citizen 
 and avoid to set `-m` to a very large value. Using a search engine or the website could be a better idea. 
 
