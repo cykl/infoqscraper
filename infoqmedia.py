@@ -38,6 +38,8 @@ import threading
 import urllib2
 import argparse
 import sys
+import urlparse
+import string
 
 class InfoQException(Exception):
     pass
@@ -104,8 +106,13 @@ class InfoQPresentationDumper:
 
     def _getName(self):
         groups = InfoQPresentationDumper._nameRegexp.search(self.pageData)
-        assert groups
-        return groups.groupdict()['name']
+        if groups:
+            return groups.groupdict()['name']
+
+        # Some old presentations do not have mp3 file. Extract the name from the URL
+        ppath = urlparse.urlparse(self.url).path
+        sindex = string.rfind(ppath, '/')
+        return  ppath[sindex+1:]
 
     def _getTimecodes(self):
         groups = InfoQPresentationDumper._timecodesRegexp.search(self.pageData)
