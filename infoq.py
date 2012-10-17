@@ -51,7 +51,7 @@ def get_url(path, scheme="http"):
     return scheme + "://www.infoq.com" + path
 
 
-class InfoQ:
+class InfoQ(object):
     """ InfoQ web client entry point"""
     def __init__(self):
         self.authenticated = False
@@ -91,7 +91,7 @@ class InfoQ:
             pass
 
 
-class MaxPagesFilter:
+class MaxPagesFilter(object):
     """ A summary filter which bound the number fetched RightBarPage"""
 
     def __init__(self, max_pages):
@@ -106,7 +106,7 @@ class MaxPagesFilter:
         return presentation_summary
 
 
-class RightBarPage:
+class RightBarPage(object):
     """A page returned by /rightbar.action
 
     This page lists all available presentations with pagination.
