@@ -30,6 +30,7 @@ class TestInfoQ(unittest.TestCase):
                 self.assertIsNotNone(entry['desc'])
                 self.assertIsNotNone(entry['auth'])
                 self.assertIsNotNone(entry['date'])
+                self.assertIsNotNone(entry['title'])
 
             self.assertGreaterEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 

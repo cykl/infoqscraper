@@ -148,12 +148,16 @@ class RightBarPage:
                 str = div.find('a', class_='editorlink').parent.next_sibling.strip(" \t\n\r,")
                 return datetime.datetime.strptime(str, "%b %d, %Y")
 
+            def get_title(div):
+                return div.find('h1').get_text().strip()
+
             return {
                 'id'   : get_id(div),
                 'path' : get_path(div),
                 'desc' : get_desc(div),
                 'auth' : get_auth(div),
                 'date' : get_date(div),
+                'title': get_title(div),
             }
 
         entries = self.soup.findAll('div', {'class': 'entry'})
