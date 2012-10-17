@@ -26,87 +26,45 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import infoq
+
 import re
-import urllib
-import urllib2
 import argparse
 import sys
 
-class InfoQLister:
-    _baseUrl = "http://www.infoq.com/rightbar.action"
+class _Filter(infoq.MaxPagesFilter):
+    def __init__(self, pattern, max_hits=20, max_pages=5):
+        super(_Filter, self).__init__(max_pages)
 
-    _presentationPerPage = 8
+        self.pattern = pattern
+        self.max_hits = max_hits
+        self.hits = 0
 
-    _titleRegexp = re.compile("href=\"/presentations/(?P<id>.*);jsessionid=.*\">(?P<title>.*)</a>")
-    _descRegexp  = re.compile("<p>(?P<desc>.*?)</p>.*?<ul class=\"info link-col\">", flags=re.M|re.S)
+    def filter(self, p_summary):
+        if self.hits >= self.max_hits:
+            raise StopIteration
 
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def _fetchPage(index):
-        params   = urllib.urlencode({"language": "en", "selectedTab": "PRESENTATION", "startIndex": index})
-        request  = urllib2.Request(InfoQLister._baseUrl, data=params)
-        response = urllib2.urlopen(request)
-        data = response.read()
-        return data
-
-    @staticmethod
-    def _parsePage(index):
-        data = InfoQLister._fetchPage(index)
-
-        presentations = []
-
-        blocks =  re.findall("<div class=\"entry\" id=\"entry[0-9]+\">.*?<ul class=\"info link-col\">", data, flags=re.M|re.S)
-        for block in blocks:
-            presentation = {}
-            groups = InfoQLister._titleRegexp.search(block)
-            presentation['id'] = groups.groupdict()['id']
-            presentation['title']= groups.groupdict()['title']
-
-            groups = InfoQLister._descRegexp.search(block)
-            presentation['desc'] = groups.groupdict()['desc']
-
-            presentations.append(presentation)
-
-        return presentations
-
-    def search(self, pattern, maxHits=20, maxPages=5):
-        results = []
-
-        page = 0
-        while len(results) < maxHits and page < maxPages:
-            presentations = self._parsePage(page * InfoQLister._presentationPerPage)
-            for presentation in presentations:
-                if not pattern or re.search(pattern, presentation['title'], flags=re.I):
-                    results.append(presentation)
-                    if len(results) == maxHits:
-                        break
-
-            page += 1
-
-        return results
-
-    def list(self, count=10):
-        self.search(None, maxHits=10)
-
+        s = super(_Filter, self).filter(p_summary)
+        if s and not self.pattern or re.search(self.pattern, p_summary['desc'] + " " + p_summary['title'], flags=re.I):
+            self.hits += 1
+            return s
 
 def _standardOutput(results):
     from textwrap import fill
 
-    for index in xrange(len(results)):
-        result = results[index]
+    index = 0
+    for result in results:
         print
-        print "{0:>3}. Title: {1}".format(index, result['title'])
+        print "{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
         print "     Id: {0}".format(result['id'])
         print "     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8))
+        index += 1
 
 def _shortOutput(results):
     for result in results:
         print result['id']
 
 def main():
-
     parser = argparse.ArgumentParser(description='List presentations available on InfoQ.')
     parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (8 presentations per page)')
     parser.add_argument('-n', '--max-hits' , type=int, default=10,   help='maximum number of hits')
@@ -116,12 +74,13 @@ def main():
     args = parser.parse_args()
 
     try:
-        lister = InfoQLister()
-        results =  lister.search(args.pattern, maxHits=args.max_hits, maxPages=args.max_pages)
+        iq = infoq.InfoQ()
+        f = _Filter(args.pattern, max_hits=args.max_hits, max_pages=args.max_pages)
+        summaries = iq.presentation_summaries(filter=f)
         if args.short:
-            _shortOutput(results)
+            _shortOutput(summaries)
         else:
-            _standardOutput(results)
+            _standardOutput(summaries)
 
 
         return 0
