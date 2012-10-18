@@ -15,9 +15,15 @@ try:
 except  KeyError:
     PASSWORD = None
 
+
 class TestInfoQ(unittest2.TestCase):
     def setUp(self):
         self.iq = infoq.InfoQ()
+
+    @property
+    def latest_presentation(self):
+        ps = self.iq.presentation_summaries().next()
+        return infoq.Presentation(ps['id'])
 
     def test_login_ok(self):
         if USERNAME and PASSWORD:
@@ -60,7 +66,7 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 
 
-    def test_presentation(self):
+    def test_presentation_java_gc_azul(self):
         p = infoq.Presentation("Java-GC-Azul-C4")
 
         self.assertEqual(p.metadata['title'], "Understanding Java Garbage Collection and What You Can Do about It")
@@ -78,8 +84,7 @@ class TestInfoQ(unittest2.TestCase):
 
     def test_fetch(self):
         tmp_dir = tempfile.mkdtemp()
-        ps = self.iq.presentation_summaries().next()
-        p = infoq.Presentation(ps['id'])
+        p = self.latest_presentation
 
         infoq.fetch([infoq.get_url(slide) for slide in p.metadata['slides']], tmp_dir)
         file_list = [os.path.join(tmp_dir, file) for file in os.listdir(tmp_dir)]
