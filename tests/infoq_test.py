@@ -41,7 +41,7 @@ class TestInfoQ(unittest2.TestCase):
         self.assertIsInstance(m['bio'], basestring)
         self.assertIsInstance(m['about'], basestring)
         self.assertIsInstance(m['timecodes'], list)
-        prev = 0
+        prev = -1
         for t in m['timecodes']:
             self.assertIsInstance(t, int)
             self.assertGreater(t, prev)
@@ -112,7 +112,6 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(p.metadata['slides'], ['/resource/presentations/Java-GC-Azul-C4/en/slides/1.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/2.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/3.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/4.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/5.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/6.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/7.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/8.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/9.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/10.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/11.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/12.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/13.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/14.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/15.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/16.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/17.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/18.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/19.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/20.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/21.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/22.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/23.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/24.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/25.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/26.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/27.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/28.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/29.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/30.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/31.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/32.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/33.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/34.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/35.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/36.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/37.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/38.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/39.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/40.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/41.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/42.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/43.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/44.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/45.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/46.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/47.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/48.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/50.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/52.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/55.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/56.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/57.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/58.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/59.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/60.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/61.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/62.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/63.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/64.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/66.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/67.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/68.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/69.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/70.swf','/resource/presentations/Java-GC-Azul-C4/en/slides/71.swf'])
         self.assertEqual(p.metadata['video'], "rtmpe://video.infoq.com/cfx/st/presentations/12-jun-everythingyoueverwanted.mp4")
 
-
     def test_fetch(self):
         tmp_dir = tempfile.mkdtemp()
         p = self.latest_presentation
@@ -126,6 +125,12 @@ class TestInfoQ(unittest2.TestCase):
             self.assertGreater(stat_info.st_size, 1000)
             os.remove(file)
         os.rmdir(tmp_dir)
+
+    def test_presentation_latest(self):
+        p = self.latest_presentation
+        pprint.pprint(p.metadata)
+        self.assertValidPresentationMetadata(p.metadata)
+
 
 if __name__ == '__main__':
     unittest2.main()
