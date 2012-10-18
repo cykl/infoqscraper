@@ -1,12 +1,20 @@
+import datetime
+import pprint
 import os
-import unittest
+import unittest2
 import infoq
 
-USERNAME = os.environ['INFOQ_USERNAME']
-PASSWORD = os.environ['INFOQ_PASSWORD']
+try:
+    USERNAME = os.environ['INFOQ_USERNAME']
+except KeyError:
+    USERNAME = None
 
+try:
+    PASSWORD = os.environ['INFOQ_PASSWORD']
+except  KeyError:
+    PASSWORD = None
 
-class TestInfoQ(unittest.TestCase):
+class TestInfoQ(unittest2.TestCase):
     def setUp(self):
         self.iq = infoq.InfoQ()
 
@@ -51,5 +59,20 @@ class TestInfoQ(unittest.TestCase):
         self.assertEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 
 
+    def test_presentation(self):
+        p = infoq.Presentation("Java-GC-Azul-C4")
+
+        metadata = p.get_metadata()
+        self.assertEqual(metadata['title'], "Understanding Java Garbage Collection and What You Can Do about It")
+        self.assertEqual(metadata['date'], datetime.datetime(2012, 10, 17))
+        self.assertEqual(metadata['auth'], "Gil Tene")
+        self.assertEqual(metadata['duration'], 3469)
+        self.assertEqual(metadata['sections'], ['Architecture & Design', 'Development'])
+        self.assertItemsEqual(metadata['topics'], ['Azul Zing' , 'Azul' , 'JVM' , 'Virtual Machines' , 'Runtimes' , 'Java' , 'QCon New York 2012' , 'GarbageCollection' , 'QCon'])
+        self.assertItemsEqual(metadata['summary'], "Gil Tene explains how a garbage collector works, covering the fundamentals, mechanism, terminology and metrics. He classifies several GCs, and introduces Azul C4.")
+        self.assertEqual(metadata['bio'], "Gil Tene is CTO and co-founder of Azul Systems. He has been involved with virtual machine technologies for the past 20 years and has been building Java technology-based products since 1995. Gil pioneered Azul's Continuously Concurrent Compacting Collector (C4), Java Virtualization, Elastic Memory, and various managed runtime and systems stack technologies.")
+        self.assertEqual(metadata['about'], 'Software is changing the world; QCon aims to empower software development by facilitating the spread of knowledge and innovation in the enterprise software development community; to achieve this, QCon is organized as a practitioner-driven conference designed for people influencing innovation in their teams: team leads, architects, project managers, engineering directors.')
+
+
 if __name__ == '__main__':
-    unittest.main()
+    unittest2.main()

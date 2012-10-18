@@ -5,6 +5,8 @@
 Visit http;//www.infoq.com
 
 """
+
+
 __version__ = "0.0.1-dev"
 __license__ = """
 Copyright (c) 2012, Clément MATHIEU
@@ -34,10 +36,12 @@ __contributors__ = [
 
 ]
 
-import urllib, urllib2
 import datetime
+import urllib, urllib2
+import re
 from cookielib import CookieJar
 from bs4 import BeautifulSoup
+from bs4.element import Tag, NavigableString
 
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
@@ -105,6 +109,106 @@ class MaxPagesFilter(object):
         self.seen += 1
         return presentation_summary
 
+class Presentation(object):
+
+    def __init__(self, id):
+        self.id = id
+        self._soup = None
+
+    def fetch(self):
+        """Download the page and create the soup"""
+        url = get_url("/presentations/" + self.id)
+        response = _http_client.open(url)
+        if response.getcode() != 200:
+            raise Exception("Fetching presentation %s failed" % url)
+        return BeautifulSoup(response.read(), "html5lib")
+
+    @property
+    def soup(self):
+        if not self._soup:
+            self._soup = self.fetch()
+
+        return self._soup
+
+    def get_metadata(self):
+
+        def get_title(bc3):
+            return bc3.find('h1').find('a').get_text().strip()
+
+        def get_date(bc3):
+            txt = bc3.find('div', class_='info').find('strong').next_sibling.strip()
+            mo = re.search("[\w]{2,8}\s+[0-9]{1,2}, [0-9]{4}", txt)
+            return datetime.datetime.strptime(mo.group(0), "%b %d, %Y")
+
+        def get_author(bc3):
+            return bc3.find('a', class_='editorlink').get_text().strip()
+
+        def get_duration(bc3):
+            txt = bc3.find('span').get_text().strip()
+            mo  = re.search("(\d{2}):(\d{2}):(\d{2})", txt)
+            return int(mo.group(1)) * 60 * 60 + int(mo.group(2)) * 60 + int(mo.group(3))
+
+        def add_sections_and_topics(metadata, bc3):
+            # Extracting theses two one is quite ugly since there is not clear separation between
+            # sections, topics and advertisement. We need to iterate over all children and maintain a
+            # state to know who is who
+            in_sections = True
+            in_topics = False
+
+            sections = []
+            topics = []
+
+            for child in bc3.find('dl', class_="tags2").children:
+                if not isinstance(child, Tag):
+                    continue
+
+                if child.name == 'dt' and "topics" in child['class']:
+                    if in_topics:
+                        break
+
+                    in_sections = False
+                    in_topics = True
+                    continue
+
+                if in_sections and child.name == 'dd':
+                    sections.append(child.a.get_text().strip());
+
+                if in_topics and child.name == 'dd':
+                    topics.append(child.a.get_text().strip());
+
+            metadata['sections'] = sections
+            metadata['topics'] = topics
+
+        def add_summary_bio_about(metadata, bc3):
+            content = []
+
+            txt = ""
+            for child in bc3.find('div', id="summaryComponent"):
+                if isinstance(child, NavigableString):
+                    txt += unicode(child).strip()
+                elif child.name == 'b':
+                    content.append(txt)
+                    txt = ""
+                    continue
+                elif child.name == 'br':
+                    continue
+            content.append(txt)
+
+            metadata['summary'] = content[1]
+            metadata['bio']     = content[2]
+            metadata['about']   = content[3]
+
+
+        box_content_3 = self.soup.find('div', class_='box-content-3')
+        metadata = {
+            'title': get_title(box_content_3),
+            'date' : get_date(box_content_3),
+            'auth' : get_author(box_content_3),
+            'duration': get_duration(box_content_3)
+        }
+        add_sections_and_topics(metadata, box_content_3)
+        add_summary_bio_about(metadata, box_content_3)
+        return metadata
 
 class RightBarPage(object):
     """A page returned by /rightbar.action
