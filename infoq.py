@@ -182,6 +182,28 @@ class Presentation(object):
                     b64 = mo.group(1)
                     return "rtmpe://video.infoq.com/cfx/st/%s" % base64.b64decode(b64)
 
+        def add_pdf_if_exist(metadata, bc3):
+            # The markup is not the same if authenticated or not
+            filename = None
+            form = bc3.find('form', id="pdfForm")
+            if form:
+                metadata['pdf'] = get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
+            else:
+                a = bc3.find('a', class_='link-slides')
+                if a:
+                    metadata['pdf'] = get_url(a['href'])
+
+        def add_mp3_if_exist(metadata, bc3):
+            # The markup is not the same if authenticated or not
+            filename = None
+            form = bc3.find('form', id="mp3Form")
+            if form:
+                metadata['mp3'] = get_url('/mp3download.action?filename=') + urllib.quote(form.input['value'], safe='')
+            else:
+                a = bc3.find('a', class_='link-mp3')
+                if a:
+                    metadata['mp3'] = get_url(a['href'])
+
         def add_sections_and_topics(metadata, bc3):
             # Extracting theses two one is quite ugly since there is not clear separation between
             # sections, topics and advertisement. We need to iterate over all children and maintain a
@@ -245,6 +267,9 @@ class Presentation(object):
             }
             add_sections_and_topics(metadata, box_content_3)
             add_summary_bio_about(metadata, box_content_3)
+            add_mp3_if_exist(metadata, box_content_3)
+            add_pdf_if_exist(metadata, box_content_3)
+
             self._metadata = metadata
 
         return self._metadata

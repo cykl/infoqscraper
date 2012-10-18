@@ -26,7 +26,9 @@ class TestInfoQ(unittest2.TestCase):
         return infoq.Presentation(ps['id'])
 
     def assertValidPresentationMetadata(self, m):
-        self.assertEqual(len(m), 12)
+        # Audio and Pdf are not always available
+        self.assertGreaterEqual(len(m), 12)
+        self.assertLessEqual(len(m), 14)
 
         self.assertIsInstance(m['title'], basestring)
         self.assertIsInstance(m['date'],  datetime.datetime)
@@ -53,7 +55,14 @@ class TestInfoQ(unittest2.TestCase):
         self.assertIsInstance(m['video'], basestring)
         self.assertTrue(m['video'].startswith("rtmpe://"))
 
-    def test_login_ok(self):
+        if 'mp3' in m:
+            self.assertIsInstance(m['mp3'], basestring)
+
+        if 'pdf' in m:
+            self.assertIsInstance(m['pdf'], basestring)
+
+
+   def test_login_ok(self):
         if USERNAME and PASSWORD:
             self.iq._login(USERNAME, PASSWORD)
 
@@ -111,6 +120,9 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(p.metadata['timecodes'], [3,15,73,143,227,259,343,349,540,629,752,755,822,913,1043,1210,1290,1360,1386,1462,1511,1633,1765,1892,1975,2009,2057,2111,2117,2192,2269,2328,2348,2468,2558,2655,2666,2670,2684,2758,2802,2820,2827,2838,2862,2913,2968,3015,3056,3076,3113,3115,3135,3183,3187,3247,3254,3281,3303,3328,3344,3360,3367,3376,3411,3426,3469])
         self.assertEqual(p.metadata['slides'], [infoq.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in range(1,49) + range(50,51) + range(52,53) + range(55,65) +  range(66,72)])
         self.assertEqual(p.metadata['video'], "rtmpe://video.infoq.com/cfx/st/presentations/12-jun-everythingyoueverwanted.mp4")
+        self.assertEqual(p.metadata['pdf'], "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
+        self.assertEqual(p.metadata['mp3'], "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
+
 
     def test_fetch(self):
         tmp_dir = tempfile.mkdtemp()
