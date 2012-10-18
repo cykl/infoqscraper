@@ -5,6 +5,7 @@
 Visit http;//www.infoq.com
 
 """
+import base64
 import os
 
 
@@ -174,6 +175,13 @@ class Presentation(object):
                 if mo:
                     return [slide.replace('\'', '') for slide in  mo.group(1).split(',')]
 
+        def get_video(bc3):
+            for script in bc3.find_all('script'):
+                mo = re.search('var jsclassref=\'(.*)\';', script.get_text())
+                if mo:
+                    b64 = mo.group(1)
+                    return "rtmpe://video.infoq.com/cfx/st/%s" % base64.b64decode(b64)
+
         def add_sections_and_topics(metadata, bc3):
             # Extracting theses two one is quite ugly since there is not clear separation between
             # sections, topics and advertisement. We need to iterate over all children and maintain a
@@ -233,6 +241,7 @@ class Presentation(object):
                 'duration': get_duration(box_content_3),
                 'timecodes': get_timecodes(box_content_3),
                 'slides': get_slides(box_content_3),
+                'video': get_video(box_content_3),
             }
             add_sections_and_topics(metadata, box_content_3)
             add_summary_bio_about(metadata, box_content_3)
