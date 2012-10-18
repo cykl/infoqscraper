@@ -23,7 +23,7 @@ class TestInfoQ(unittest2.TestCase):
     @property
     def latest_presentation(self):
         ps = self.iq.presentation_summaries().next()
-        return infoq.Presentation(ps['id'])
+        return infoq.Presentation(ps['id'], client=self.iq.client)
 
     def assertValidPresentationMetadata(self, m):
         # Audio and Pdf are not always available
@@ -57,12 +57,10 @@ class TestInfoQ(unittest2.TestCase):
 
         if 'mp3' in m:
             self.assertIsInstance(m['mp3'], basestring)
-
         if 'pdf' in m:
             self.assertIsInstance(m['pdf'], basestring)
 
-
-   def test_login_ok(self):
+    def test_login_ok(self):
         if USERNAME and PASSWORD:
             self.iq._login(USERNAME, PASSWORD)
 
@@ -72,7 +70,7 @@ class TestInfoQ(unittest2.TestCase):
     def test_rightbar_summaries(self):
         for index in xrange(2):
             rb = infoq.RightBarPage(1)
-            rb.fetch()
+            rb.fetch(self.iq.client)
 
             count = 0
             for entry in rb.summaries():
@@ -104,7 +102,7 @@ class TestInfoQ(unittest2.TestCase):
 
 
     def test_presentation_java_gc_azul(self):
-        p = infoq.Presentation("Java-GC-Azul-C4")
+        p = infoq.Presentation("Java-GC-Azul-C4", client=self.iq.client)
 
         self.assertValidPresentationMetadata(p.metadata)
 
@@ -128,7 +126,7 @@ class TestInfoQ(unittest2.TestCase):
         tmp_dir = tempfile.mkdtemp()
         p = self.latest_presentation
 
-        infoq.fetch(p.metadata['slides'], tmp_dir)
+        infoq.fetch(self.iq.client, p.metadata['slides'], tmp_dir)
         file_list = [os.path.join(tmp_dir, file) for file in os.listdir(tmp_dir)]
         self.assertEqual(len(file_list),  len(p.metadata['slides']))
 

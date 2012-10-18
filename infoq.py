@@ -48,19 +48,15 @@ from bs4.element import Tag, NavigableString
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
 
-# InfoQ requires cookies to be logged in. Use a dedicated urllib opener
-_http_client = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
-
-
 def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
-def fetch(urls, dir_path):
+def fetch(client, urls, dir_path):
     '''Download all the URLs in the specified directory.'''
     # TODO: Implement parallel download
     for url in urls:
-        response = _http_client.open(url)
+        response = client.open(url)
         if response.getcode() != 200:
             raise Exception("Login failed")
 
@@ -73,6 +69,8 @@ class InfoQ(object):
     """ InfoQ web client entry point"""
     def __init__(self):
         self.authenticated = False
+        # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
+        self.client = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
 
     def _login(self, username, password):
         """ Log in.
@@ -86,7 +84,7 @@ class InfoQ(object):
             'fromHeader': 'true',
             'submit-login': '',
         }
-        response = _http_client.open(url, urllib.urlencode(params))
+        response = self.client.open(url, urllib.urlencode(params))
         if not "loginAction_ok.jsp" in response.url:
             raise Exception("Login failed")
 
@@ -101,7 +99,7 @@ class InfoQ(object):
         try:
             for page_index in xrange(1000):
                 rb = RightBarPage(page_index)
-                rb.fetch()
+                rb.fetch(self.client)
                 for summary in rb.summaries():
                     if not filter or filter.filter(summary):
                         yield summary
@@ -125,15 +123,16 @@ class MaxPagesFilter(object):
 
 class Presentation(object):
 
-    def __init__(self, id):
+    def __init__(self, id, client=urllib2.build_opener()):
         self.id = id
         self._soup = None
         self._metadata = None
+        self.client = client
 
     def fetch(self):
         """Download the page and create the soup"""
         url = get_url("/presentations/" + self.id)
-        response = _http_client.open(url)
+        response = self.client.open(url)
         if response.getcode() != 200:
             raise Exception("Fetching presentation %s failed" % url)
         return BeautifulSoup(response.read(), "html5lib")
@@ -282,7 +281,7 @@ class RightBarPage(object):
     def __init__(self, index):
         self.index = index
 
-    def fetch(self):
+    def fetch(self, client):
         """Download the page and create the soup"""
 
         params = {
@@ -290,7 +289,7 @@ class RightBarPage(object):
             "selectedTab": "PRESENTATION",
             "startIndex": self.index,
         }
-        response = _http_client.open(get_url("/rightbar.action"), urllib.urlencode(params))
+        response = client.open(get_url("/rightbar.action"), urllib.urlencode(params))
         if response.getcode() != 200:
             raise Exception("Fetching rightbar index %s failed" % self.index)
         self.soup = BeautifulSoup(response.read())
