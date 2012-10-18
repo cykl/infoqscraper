@@ -5,6 +5,7 @@
 Visit http;//www.infoq.com
 
 """
+import os
 
 
 __version__ = "0.0.1-dev"
@@ -54,6 +55,18 @@ def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
+def fetch(urls, dir_path):
+    '''Download all the URLs in the specified directory.'''
+    # TODO: Implement parallel download
+    for url in urls:
+        response = _http_client.open(url)
+        if response.getcode() != 200:
+            raise Exception("Login failed")
+
+        filename =  url.rsplit('/', 1)[1]
+
+        with open(os.path.join(dir_path, filename), "w") as f:
+            f.write(response.read())
 
 class InfoQ(object):
     """ InfoQ web client entry point"""
@@ -114,6 +127,7 @@ class Presentation(object):
     def __init__(self, id):
         self.id = id
         self._soup = None
+        self._metadata = None
 
     def fetch(self):
         """Download the page and create the soup"""
@@ -130,8 +144,8 @@ class Presentation(object):
 
         return self._soup
 
-    def get_metadata(self):
-
+    @property
+    def metadata(self):
         def get_title(bc3):
             return bc3.find('h1').find('a').get_text().strip()
 
@@ -210,20 +224,21 @@ class Presentation(object):
             metadata['bio']     = content[2]
             metadata['about']   = content[3]
 
+        if not self._metadata:
+            box_content_3 = self.soup.find('div', class_='box-content-3')
+            metadata = {
+                'title': get_title(box_content_3),
+                'date' : get_date(box_content_3),
+                'auth' : get_author(box_content_3),
+                'duration': get_duration(box_content_3),
+                'timecodes': get_timecodes(box_content_3),
+                'slides': get_slides(box_content_3),
+            }
+            add_sections_and_topics(metadata, box_content_3)
+            add_summary_bio_about(metadata, box_content_3)
+            self._metadata = metadata
 
-        box_content_3 = self.soup.find('div', class_='box-content-3')
-        metadata = {
-            'title': get_title(box_content_3),
-            'date' : get_date(box_content_3),
-            'auth' : get_author(box_content_3),
-            'duration': get_duration(box_content_3),
-            'timecodes': get_timecodes(box_content_3),
-            'slides': get_slides(box_content_3),
-        }
-        add_sections_and_topics(metadata, box_content_3)
-        add_summary_bio_about(metadata, box_content_3)
-
-        return metadata
+        return self._metadata
 
 class RightBarPage(object):
     """A page returned by /rightbar.action
