@@ -148,6 +148,18 @@ class Presentation(object):
             mo  = re.search("(\d{2}):(\d{2}):(\d{2})", txt)
             return int(mo.group(1)) * 60 * 60 + int(mo.group(2)) * 60 + int(mo.group(3))
 
+        def get_timecodes(bc3):
+            for script in bc3.find_all('script'):
+                mo = re.search("var\s+TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
+                if mo:
+                    return [int(tc) for tc in  mo.group(1).split(',')]
+
+        def get_slides(bc3):
+            for script in bc3.find_all('script'):
+                mo = re.search("var\s+slides\s?=\s?new\s+Array.?\(('.+')\)", script.get_text())
+                if mo:
+                    return [slide.replace('\'', '') for slide in  mo.group(1).split(',')]
+
         def add_sections_and_topics(metadata, bc3):
             # Extracting theses two one is quite ugly since there is not clear separation between
             # sections, topics and advertisement. We need to iterate over all children and maintain a
@@ -204,10 +216,13 @@ class Presentation(object):
             'title': get_title(box_content_3),
             'date' : get_date(box_content_3),
             'auth' : get_author(box_content_3),
-            'duration': get_duration(box_content_3)
+            'duration': get_duration(box_content_3),
+            'timecodes': get_timecodes(box_content_3),
+            'slides': get_slides(box_content_3),
         }
         add_sections_and_topics(metadata, box_content_3)
         add_summary_bio_about(metadata, box_content_3)
+
         return metadata
 
 class RightBarPage(object):
