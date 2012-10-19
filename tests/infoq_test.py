@@ -51,7 +51,8 @@ class TestInfoQ(unittest2.TestCase):
         self.assertIsInstance(m['slides'], list)
         for s in m['slides']:
             self.assertIsInstance(s, basestring)
-            #self.assertTrue(s.startswith("http://"))
+            self.assertTrue(s.startswith("http://"))
+            
         self.assertIsInstance(m['video'], basestring)
         self.assertTrue(m['video'].startswith("rtmpe://"))
 
