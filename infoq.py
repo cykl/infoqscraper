@@ -6,6 +6,8 @@ Visit http;//www.infoq.com
 
 """
 import base64
+import subprocess
+import tempfile
 import os
 
 
@@ -329,3 +331,43 @@ class RightBarPage(object):
 
         entries = self.soup.findAll('div', {'class': 'entry'})
         return [create_summary(div) for div in entries]
+
+
+import Image
+
+class SwfConverter(object):
+    """Convert SWF slides into an images
+
+    Require swfrender (from swftools: http://www.swftools.org/)
+    """
+
+    # Currently rely on swftools
+    #
+    # Would be great to have a native python dependency to convert swf into png or jpg.
+    # However it seems that pyswf  isn't flawless. Some graphical elements (like the text!) are lost during
+    # the export.
+
+    def __init__(self, swfrender_path='swfrender'):
+        self.swfrender = swfrender_path
+        self._stdout = None
+        self._stderr = None
+
+    def to_png(self, swf_path, png_path):
+        """ Convert a slide into a PNG image.
+
+        An exception is raised if image cannot be created.
+        """
+        cmd = [self.swfrender, swf_path, '-o', png_path]
+        ret = subprocess.call(cmd, stdout=self._stdout, stderr=self._stderr)
+        if ret != 0:
+            raise Exception('Failed to convert SWF')
+
+    def to_jpeg(self, swf_path, jpg_path):
+        """ Convert a slide into a PNG image.
+
+        An exception is raised if image cannot be created.
+        """
+        png_path = tempfile.mktemp(suffix=".png")
+        self.to_png(swf_path, png_path)
+        Image.open(png_path).convert('RGB').save(jpg_path, 'jpeg')
+        os.remove(png_path)

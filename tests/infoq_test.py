@@ -1,5 +1,6 @@
 import datetime
 import pprint
+import shutil
 import tempfile
 import os
 import unittest2
@@ -141,6 +142,25 @@ class TestInfoQ(unittest2.TestCase):
         p = self.latest_presentation
         self.assertValidPresentationMetadata(p.metadata)
 
+    def test_swf(self):
+        tmp_dir = tempfile.mkdtemp()
+        slides = self.latest_presentation.metadata['slides']
+        infoq.fetch(self.iq.client, [slides[0]], tmp_dir)
+        swf_path = os.path.join(tmp_dir, os.listdir(tmp_dir)[0])
+
+        swfc = infoq.SwfConverter()
+
+        png_path = swf_path.replace('.swf', '.png')
+        swfc.to_png(swf_path, png_path)
+        stat_info = os.stat(png_path)
+        self.assertGreater(stat_info.st_size, 1000)
+
+        jpg_path = swf_path.replace('.swf', '.jpg')
+        swfc.to_jpeg(swf_path, jpg_path)
+        stat_info = os.stat(jpg_path)
+        self.assertGreater(stat_info.st_size, 1000)
+
+        shutil.rmtree(tmp_dir)
 
 if __name__ == '__main__':
     unittest2.main()
