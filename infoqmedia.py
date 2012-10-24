@@ -31,23 +31,25 @@ import infoq
 import os
 import argparse
 import sys
+import subprocess
+
+def check_dependencies(bins):
+    ok = True
+    for cmd in bins:
+        try:
+            with open(os.devnull, 'w') as null:
+                subprocess.call(cmd, stdout=null, stderr=null)
+        except OSError:
+            print >> sys.stderr, "%s not found. Please install required dependencies or specify the binary location" % (cmd)
+            ok = False
+
+    return ok
 
 def main():
-    class StoreAndCheckBinary(argparse.Action):
-
-        def __call__(self, parser, namespace, values, option_string=None):
-            if not os.path.exists(values):
-                print >> sys.stderr, "%s binary cannot be found at %s" % (self.dest, values)
-                sys.exit(1)
-
-            setattr(namespace, self.dest, values)
-
-    store_check = StoreAndCheckBinary
-
     parser = argparse.ArgumentParser(description='Download presentations from InfoQ.')
-    parser.add_argument('-f', '--ffmpeg'   , nargs="?", type=str, action=store_check, default="ffmpeg",    help='ffmpeg binary')
-    parser.add_argument('-s', '--swfrender', nargs="?", type=str, action=store_check, default="swfrender", help='swfrender binary')
-    parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, action=store_check, default="rtmpdump" , help='rtmpdump binary')
+    parser.add_argument('-f', '--ffmpeg'   , nargs="?", type=str, default="ffmpeg",    help='ffmpeg binary')
+    parser.add_argument('-s', '--swfrender', nargs="?", type=str, default="swfrender", help='swfrender binary')
+    parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
     parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
 #    parser.add_argument('-j', '--jpeg'     , action="store_true", help='Use JPEG rather than PNG (for buggy ffmpeg versions)')
 #    parser.add_argument('-q', '--quiet'    , action='store_true', help='quiet mode')
@@ -61,8 +63,10 @@ def main():
         args.output = "%s.avi" % args.name
 
     try:
-        id = args.name
+        if not check_dependencies([args.ffmpeg, args.swfrender, args.rtmpdump]):
+            sys.exit(1)
 
+        id = args.name
         iq = infoq.InfoQ()
         presentation = infoq.Presentation(id)
         builder = infoq.OfflinePresentation(iq, presentation, **{
