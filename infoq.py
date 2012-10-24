@@ -54,18 +54,32 @@ def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
-def fetch(client, urls, dir_path):
+def fetch(client, url, dir_path):
+    response = client.open(url)
+    if response.getcode() != 200:
+        raise Exception("Fetch failed")
+
+    filename =  url.rsplit('/', 1)[1]
+    filename = os.path.join(dir_path, filename)
+    with open(filename, "w") as f:
+        f.write(response.read())
+
+    return filename
+
+def fetch_all(client, urls, dir_path):
     '''Download all the URLs in the specified directory.'''
     # TODO: Implement parallel download
-    for url in urls:
-        response = client.open(url)
-        if response.getcode() != 200:
-            raise Exception("Login failed")
+    filenames = []
 
-        filename =  url.rsplit('/', 1)[1]
+    try:
+        for url in urls:
+            filenames.append(fetch(client, url, dir_path))
+    except Exception as e:
+        for filename in filenames:
+            os.remove(filename)
+        raise e
 
-        with open(os.path.join(dir_path, filename), "w") as f:
-            f.write(response.read())
+    return filenames
 
 class InfoQ(object):
     """ InfoQ web client entry point"""
@@ -127,8 +141,6 @@ class Presentation(object):
 
     def __init__(self, id, client=urllib2.build_opener()):
         self.id = id
-        self._soup = None
-        self._metadata = None
         self.client = client
 
     def fetch(self):
@@ -139,9 +151,10 @@ class Presentation(object):
             raise Exception("Fetching presentation %s failed" % url)
         return BeautifulSoup(response.read(), "html5lib")
 
+
     @property
     def soup(self):
-        if not self._soup:
+        if not hasattr(self, "_soup"):
             self._soup = self.fetch()
 
         return self._soup
@@ -255,7 +268,7 @@ class Presentation(object):
             metadata['bio']     = content[2]
             metadata['about']   = content[3]
 
-        if not self._metadata:
+        if not hasattr(self, "_metadata"):
             box_content_3 = self.soup.find('div', class_='box-content-3')
             metadata = {
                 'title': get_title(box_content_3),
@@ -274,6 +287,89 @@ class Presentation(object):
             self._metadata = metadata
 
         return self._metadata
+
+
+
+
+class OfflinePresentation(object):
+
+    def __init__(self, client, presentation):
+        self.client = client
+        self.presentation = presentation
+
+    @property
+    def tmp_dir(self):
+        if not hasattr(self, "_tmp_dir"):
+            self._tmp_dir = tempfile.mkdtemp(prefix="infoq")
+
+        return self._tmp_dir
+
+    @property
+    def audio_path(self):
+        return os.path.join(self.tmp_dir, "audio.ogg")
+
+    @property
+    def video_path(self):
+        return os.path.join(self.tmp_dir, 'video.avi')
+
+    def create_presentation(self, output=None):
+        if self.client.authenticated:
+            audio = self.download_mp3()
+        else:
+            video = self.download_video()
+            audio = self._extractAudio(video)
+
+        swf_slides = self.download_slides()
+        png_slides = self.convert_slides(swf_slides)
+        frame_pattern = self.prepare_frames(png_slides)
+        output = self.assemble(audio, frame_pattern, output)
+        return output
+
+    def assemble(self, audio, frame_pattern, output=None):
+        if not output:
+            output = os.path.join(self.tmp_dir, "output.avi")
+        cmd = ["ffmpeg", "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
+        ret = subprocess.call(cmd, stdout=None, stderr=None)
+        assert ret == 0
+        return output
+
+    def download_video(self):
+        video_url =  self.presentation.metadata['video']
+        video_name = video_url.rsplit('/', 2)[1]
+        video_path = self.video_path
+
+        cmd = ["rtmpdump", '-r', video_url, "-o", video_path]
+        ret = subprocess.call(cmd, stdout=None, stderr = None)
+        assert ret == 0, cmd
+        return video_path
+
+    def download_slides(self):
+        return fetch_all(self.client.client, self.presentation.metadata['slides'], self.tmp_dir)
+
+    def download_mp3(self):
+        return fetch(self.client.client, self.presentaion.metadata['mp3'], self.tmp_dir)
+
+    def _extractAudio(self, video_path):
+        cmd = ["ffmpeg", '-i', video_path, '-vn', '-acodec', 'libvorbis', self.audio_path]
+        ret = subprocess.call(cmd , stdout=None, stderr=None)
+        assert ret == 0
+        return self.audio_path
+
+    def convert_slides(self, swf_slides):
+        swf_render = SwfConverter()
+        return [swf_render.to_png(s) for s in swf_slides]
+
+    def prepare_frames(self, slides):
+        timecodes = self.presentation.metadata['timecodes']
+
+        frame = 0
+        for slide_index in xrange(len(slides)):
+            for remaining  in xrange(timecodes[slide_index], timecodes[slide_index+1]):
+                os.link(slides[slide_index], os.path.join(self.tmp_dir, "frame-{0:04d}.png").format(frame))
+                frame += 1
+
+        return os.path.join(self.tmp_dir, "frame-%04d.png")
+
 
 class RightBarPage(object):
     """A page returned by /rightbar.action
@@ -352,22 +448,30 @@ class SwfConverter(object):
         self._stdout = None
         self._stderr = None
 
-    def to_png(self, swf_path, png_path):
+    def to_png(self, swf_path, png_path=None):
         """ Convert a slide into a PNG image.
 
+        OSError is raised if swfrender is not available.
         An exception is raised if image cannot be created.
         """
+        if not png_path:
+            png_path = swf_path.replace(".swf", ".png")
+
         cmd = [self.swfrender, swf_path, '-o', png_path]
         ret = subprocess.call(cmd, stdout=self._stdout, stderr=self._stderr)
         if ret != 0:
             raise Exception('Failed to convert SWF')
+        return png_path
 
     def to_jpeg(self, swf_path, jpg_path):
         """ Convert a slide into a PNG image.
 
+        OSError is raised if swfrender is not available.
         An exception is raised if image cannot be created.
         """
         png_path = tempfile.mktemp(suffix=".png")
         self.to_png(swf_path, png_path)
         Image.open(png_path).convert('RGB').save(jpg_path, 'jpeg')
         os.remove(png_path)
+        return jpg_path
+

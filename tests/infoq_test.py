@@ -128,7 +128,7 @@ class TestInfoQ(unittest2.TestCase):
         tmp_dir = tempfile.mkdtemp()
         p = self.latest_presentation
 
-        infoq.fetch(self.iq.client, p.metadata['slides'], tmp_dir)
+        infoq.fetch_all(self.iq.client, p.metadata['slides'], tmp_dir)
         file_list = [os.path.join(tmp_dir, file) for file in os.listdir(tmp_dir)]
         self.assertEqual(len(file_list),  len(p.metadata['slides']))
 
@@ -145,7 +145,7 @@ class TestInfoQ(unittest2.TestCase):
     def test_swf(self):
         tmp_dir = tempfile.mkdtemp()
         slides = self.latest_presentation.metadata['slides']
-        infoq.fetch(self.iq.client, [slides[0]], tmp_dir)
+        infoq.fetch_all(self.iq.client, [slides[0]], tmp_dir)
         swf_path = os.path.join(tmp_dir, os.listdir(tmp_dir)[0])
 
         swfc = infoq.SwfConverter()
