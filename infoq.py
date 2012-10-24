@@ -86,7 +86,7 @@ class InfoQ(object):
     def __init__(self):
         self.authenticated = False
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
-        self.client = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
 
     def _login(self, username, password):
         """ Log in.
@@ -100,7 +100,7 @@ class InfoQ(object):
             'fromHeader': 'true',
             'submit-login': '',
         }
-        response = self.client.open(url, urllib.urlencode(params))
+        response = self.opener.open(url, urllib.urlencode(params))
         if not "loginAction_ok.jsp" in response.url:
             raise Exception("Login failed")
 
@@ -115,7 +115,7 @@ class InfoQ(object):
         try:
             for page_index in xrange(1000):
                 rb = RightBarPage(page_index)
-                rb.fetch(self.client)
+                rb.fetch(self.opener)
                 for summary in rb.summaries():
                     if not filter or filter.filter(summary):
                         yield summary
@@ -139,14 +139,14 @@ class MaxPagesFilter(object):
 
 class Presentation(object):
 
-    def __init__(self, id, client=urllib2.build_opener()):
+    def __init__(self, id, opener=urllib2.build_opener()):
         self.id = id
-        self.client = client
+        self.opener = opener
 
     def fetch(self):
         """Download the page and create the soup"""
         url = get_url("/presentations/" + self.id)
-        response = self.client.open(url)
+        response = self.opener.open(url)
         if response.getcode() != 200:
             raise Exception("Fetching presentation %s failed" % url)
         return BeautifulSoup(response.read(), "html5lib")
