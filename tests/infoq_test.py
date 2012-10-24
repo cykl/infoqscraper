@@ -122,7 +122,7 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(p.metadata['video'], "rtmpe://video.infoq.com/cfx/st/presentations/12-jun-everythingyoueverwanted.mp4")
         self.assertEqual(p.metadata['pdf'], "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
         self.assertEqual(p.metadata['mp3'], "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
-    
+
 
     def test_fetch(self):
         tmp_dir = tempfile.mkdtemp()

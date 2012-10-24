@@ -293,9 +293,12 @@ class Presentation(object):
 
 class OfflinePresentation(object):
 
-    def __init__(self, client, presentation):
+    def __init__(self, client, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
         self.client = client
         self.presentation = presentation
+        self.ffmpeg = ffmpeg
+        self.rtmpdump = rtmpdump
+        self.swfrender = swfrender
 
     @property
     def tmp_dir(self):
@@ -328,7 +331,7 @@ class OfflinePresentation(object):
     def assemble(self, audio, frame_pattern, output=None):
         if not output:
             output = os.path.join(self.tmp_dir, "output.avi")
-        cmd = ["ffmpeg", "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
+        cmd = [self.ffmpeg, "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
         ret = subprocess.call(cmd, stdout=None, stderr=None)
         assert ret == 0
         return output
@@ -338,7 +341,7 @@ class OfflinePresentation(object):
         video_name = video_url.rsplit('/', 2)[1]
         video_path = self.video_path
 
-        cmd = ["rtmpdump", '-r', video_url, "-o", video_path]
+        cmd = [self.rtmpdump, '-r', video_url, "-o", video_path]
         ret = subprocess.call(cmd, stdout=None, stderr = None)
         assert ret == 0, cmd
         return video_path
@@ -350,13 +353,13 @@ class OfflinePresentation(object):
         return fetch(self.client.client, self.presentaion.metadata['mp3'], self.tmp_dir)
 
     def _extractAudio(self, video_path):
-        cmd = ["ffmpeg", '-i', video_path, '-vn', '-acodec', 'libvorbis', self.audio_path]
+        cmd = [self.ffmpeg, '-i', video_path, '-vn', '-acodec', 'libvorbis', self.audio_path]
         ret = subprocess.call(cmd , stdout=None, stderr=None)
         assert ret == 0
         return self.audio_path
 
     def convert_slides(self, swf_slides):
-        swf_render = SwfConverter()
+        swf_render = SwfConverter(swfrender=self.swfrender)
         return [swf_render.to_png(s) for s in swf_slides]
 
     def prepare_frames(self, slides):

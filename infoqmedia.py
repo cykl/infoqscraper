@@ -45,9 +45,9 @@ def main():
     store_check = StoreAndCheckBinary
 
     parser = argparse.ArgumentParser(description='Download presentations from InfoQ.')
-#    parser.add_argument('-f', '--ffmpeg'   , nargs="?", type=str, action=store_check, default="ffmpeg",    help='ffmpeg binary')
-#    parser.add_argument('-s', '--swfrender', nargs="?", type=str, action=store_check, default="swfrender", help='swfrender binary')
-#    parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, action=store_check, default="rtmpdump" , help='rtmpdump binary')
+    parser.add_argument('-f', '--ffmpeg'   , nargs="?", type=str, action=store_check, default="ffmpeg",    help='ffmpeg binary')
+    parser.add_argument('-s', '--swfrender', nargs="?", type=str, action=store_check, default="swfrender", help='swfrender binary')
+    parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, action=store_check, default="rtmpdump" , help='rtmpdump binary')
     parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
 #    parser.add_argument('-j', '--jpeg'     , action="store_true", help='Use JPEG rather than PNG (for buggy ffmpeg versions)')
 #    parser.add_argument('-q', '--quiet'    , action='store_true', help='quiet mode')
@@ -65,7 +65,11 @@ def main():
 
         iq = infoq.InfoQ()
         presentation = infoq.Presentation(id)
-        builder = infoq.OfflinePresentation(iq, presentation)
+        builder = infoq.OfflinePresentation(iq, presentation, **{
+            'ffmpeg' : args.ffmpeg,
+            'rtmpdump' : args.rtmpdump,
+            'swfrender' : args.swfrender,
+        })
         builder.create_presentation(output=args.output)
         return 0
 
