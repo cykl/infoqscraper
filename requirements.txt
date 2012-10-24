@@ -1,3 +1,4 @@
 BeautifulSoup4
 unittest2
 html5lib
+PIL
