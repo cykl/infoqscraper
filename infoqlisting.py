@@ -55,9 +55,9 @@ def _standardOutput(results):
     index = 0
     for result in results:
         print
-        print "{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
-        print "     Id: {0}".format(result['id'])
-        print "     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8))
+        print u"{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
+        print u"     Id: {0}".format(result['id'])
+        print u"     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8))
         index += 1
 
 def _shortOutput(results):
