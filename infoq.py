@@ -459,7 +459,11 @@ class RightBarPage(object):
                 "startIndex": self.index,
             }
 
-            content = self.iq.fetch(get_url("/rightbar.action"))
+            response = self.iq.opener.open(get_url("/rightbar.action"), urllib.urlencode(params))
+            if response.getcode() != 200:
+                raise Exception("Fetching rightbar index %s failed" % self.index)
+            content = response.read()
+
             self._soup = BeautifulSoup(content)
             return self._soup
 

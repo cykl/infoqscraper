@@ -5,6 +5,7 @@ import tempfile
 import os
 import unittest2
 import infoq
+import errno
 
 try:
     USERNAME = os.environ['INFOQ_USERNAME']
@@ -15,6 +16,45 @@ try:
     PASSWORD = os.environ['INFOQ_PASSWORD']
 except  KeyError:
     PASSWORD = None
+
+HOME = os.path.expanduser("~")
+XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache"))
+CACHE_DIR = os.path.join(XDG_CACHE_HOME, "infoqmedia", "tests")
+
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
+
+def proxy_fetch(real_fetch):
+    ''' A Infoq.fetch replacement function that serve cached resources and cache them if not available.'''
+    def inner(url):
+        file_path = os.path.join(CACHE_DIR, url.replace('http://', ''))
+        content = None
+        if os.path.exists(file_path):
+            # Served cached content
+            with open(file_path, 'rb') as f:
+                content = f.read()
+        else:
+            # Fech the remote resource and cache it
+            content = real_fetch(url)
+            try: # Directory must be created before calling open
+                dir = os.path.dirname(file_path)
+                os.makedirs(dir)
+            except OSError as exception:
+                if exception.errno != errno.EEXIST:
+                    raise
+            with open(file_path, 'wb') as f:
+                f.write(content)
+        return content
+
+    return inner
+
+def use_cache(func):
+    ''' A decorator to indicate that the test should try to use cached resources rather than using the website.'''
+    def _use_cache(self, *args, **kwargs):
+        fetch = proxy_fetch(self.iq.fetch)
+        self.iq.fetch = fetch
+        func(self, *args, **kwargs)
+    return _use_cache
 
 
 class TestInfoQ(unittest2.TestCase):
@@ -69,6 +109,7 @@ class TestInfoQ(unittest2.TestCase):
     def test_login_fail(self):
         self.assertRaises(Exception, self.iq.login, "user", "password")
 
+    @use_cache
     def test_rightbar_summaries(self):
         for index in xrange(2):
             rb = infoq.RightBarPage(1, self.iq)
@@ -85,6 +126,7 @@ class TestInfoQ(unittest2.TestCase):
 
             self.assertGreaterEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 
+    @use_cache
     def test_presentation_summaries(self):
         count = 0
         for entry in self.iq.presentation_summaries():
@@ -92,6 +134,7 @@ class TestInfoQ(unittest2.TestCase):
             if count > infoq.RIGHT_BAR_ENTRIES_PER_PAGES * 3:
                 break
 
+    @use_cache
     def test_presentation_summaries_custom_func(self):
         # Check that only fetch one page
         count = 0
@@ -101,7 +144,7 @@ class TestInfoQ(unittest2.TestCase):
 
         self.assertEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 
-
+    @use_cache
     def test_presentation_java_gc_azul(self):
         p = infoq.Presentation("Java-GC-Azul-C4", self.iq)
 
@@ -122,7 +165,7 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(p.metadata['pdf'], "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
         self.assertEqual(p.metadata['mp3'], "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
 
-
+    @use_cache
     def test_fetch(self):
         tmp_dir = tempfile.mkdtemp()
         p = self.latest_presentation
@@ -137,10 +180,12 @@ class TestInfoQ(unittest2.TestCase):
             os.remove(file)
         os.rmdir(tmp_dir)
 
+    @use_cache
     def test_presentation_latest(self):
         p = self.latest_presentation
         self.assertValidPresentationMetadata(p.metadata)
 
+    @use_cache
     def test_swf(self):
         tmp_dir = tempfile.mkdtemp()
         slides = self.latest_presentation.metadata['slides']
