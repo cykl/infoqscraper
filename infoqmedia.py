@@ -84,7 +84,12 @@ def main():
 
     try:
         iq = infoq.InfoQ()
-        presentation = infoq.Presentation(id, iq)
+        try:
+            presentation = infoq.Presentation(id, iq)
+        except infoq.DownloadFailedException as e:
+            print >> sys.stderr, "Presentation %s not found. Please check your id or url" % id
+            return 1
+
         builder = infoq.OfflinePresentation(presentation,
             ffmpeg=args.ffmpeg,
             rtmpdump=args.rtmpdump,

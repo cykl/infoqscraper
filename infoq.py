@@ -165,19 +165,13 @@ class Presentation(object):
     def __init__(self, id, iq):
         self.id = id
         self.iq = iq
+        self.soup = self._fetch()
 
     def _fetch(self):
         """Download the page and create the soup"""
         url = get_url("/presentations/" + self.id)
         content = self.iq.fetch(url)
         return BeautifulSoup(content, "html5lib")
-
-    @property
-    def soup(self):
-        if not hasattr(self, "_soup"):
-            self._soup = self._fetch()
-
-        return self._soup
 
     @property
     def metadata(self):
