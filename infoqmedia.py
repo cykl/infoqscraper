@@ -68,13 +68,13 @@ def main():
 
         id = args.name
         iq = infoq.InfoQ()
-        presentation = infoq.Presentation(id)
-        builder = infoq.OfflinePresentation(iq, presentation, **{
-            'ffmpeg' : args.ffmpeg,
-            'rtmpdump' : args.rtmpdump,
-            'swfrender' : args.swfrender,
-        })
-        builder.create_presentation(output=args.output)
+        presentation = infoq.Presentation(id, iq)
+        builder = infoq.OfflinePresentation(presentation,
+            ffmpeg=args.ffmpeg,
+            rtmpdump=args.rtmpdump,
+            swfrender=args.swfrender
+        )
+        builder.create_presentation(output_path=args.output)
         return 0
 
     except  KeyboardInterrupt:

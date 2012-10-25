@@ -24,7 +24,7 @@ class TestInfoQ(unittest2.TestCase):
     @property
     def latest_presentation(self):
         ps = self.iq.presentation_summaries().next()
-        return infoq.Presentation(ps['id'], opener=self.iq.opener)
+        return infoq.Presentation(ps['id'], self.iq)
 
     def assertValidPresentationMetadata(self, m):
         # Audio and Pdf are not always available
@@ -64,15 +64,14 @@ class TestInfoQ(unittest2.TestCase):
 
     def test_login_ok(self):
         if USERNAME and PASSWORD:
-            self.iq._login(USERNAME, PASSWORD)
+            self.iq.login(USERNAME, PASSWORD)
 
     def test_login_fail(self):
-        self.assertRaises(Exception, self.iq._login, "user", "password")
+        self.assertRaises(Exception, self.iq.login, "user", "password")
 
     def test_rightbar_summaries(self):
         for index in xrange(2):
-            rb = infoq.RightBarPage(1)
-            rb.fetch(self.iq.opener)
+            rb = infoq.RightBarPage(1, self.iq)
 
             count = 0
             for entry in rb.summaries():
@@ -104,7 +103,7 @@ class TestInfoQ(unittest2.TestCase):
 
 
     def test_presentation_java_gc_azul(self):
-        p = infoq.Presentation("Java-GC-Azul-C4", opener=self.iq.opener)
+        p = infoq.Presentation("Java-GC-Azul-C4", self.iq)
 
         self.assertValidPresentationMetadata(p.metadata)
 
@@ -128,7 +127,7 @@ class TestInfoQ(unittest2.TestCase):
         tmp_dir = tempfile.mkdtemp()
         p = self.latest_presentation
 
-        infoq.fetch_all(self.iq.opener, p.metadata['slides'], tmp_dir)
+        self.iq.download_all(p.metadata['slides'], tmp_dir)
         file_list = [os.path.join(tmp_dir, file) for file in os.listdir(tmp_dir)]
         self.assertEqual(len(file_list),  len(p.metadata['slides']))
 
@@ -145,8 +144,7 @@ class TestInfoQ(unittest2.TestCase):
     def test_swf(self):
         tmp_dir = tempfile.mkdtemp()
         slides = self.latest_presentation.metadata['slides']
-        infoq.fetch_all(self.iq.opener, [slides[0]], tmp_dir)
-        swf_path = os.path.join(tmp_dir, os.listdir(tmp_dir)[0])
+        swf_path = self.iq.download(slides[0], tmp_dir)
 
         swfc = infoq.SwfConverter()
 

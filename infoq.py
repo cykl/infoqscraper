@@ -50,36 +50,16 @@ from bs4.element import Tag, NavigableString
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
 
+class DownloadFailedException(Exception):
+    pass
+
+class AuthenticationFailedException(Exception):
+    pass
+
+
 def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
-
-def fetch(client, url, dir_path):
-    response = client.open(url)
-    if response.getcode() != 200:
-        raise Exception("Fetch failed")
-
-    filename =  url.rsplit('/', 1)[1]
-    filename = os.path.join(dir_path, filename)
-    with open(filename, "w") as f:
-        f.write(response.read())
-
-    return filename
-
-def fetch_all(client, urls, dir_path):
-    '''Download all the URLs in the specified directory.'''
-    # TODO: Implement parallel download
-    filenames = []
-
-    try:
-        for url in urls:
-            filenames.append(fetch(client, url, dir_path))
-    except Exception as e:
-        for filename in filenames:
-            os.remove(filename)
-        raise e
-
-    return filenames
 
 class InfoQ(object):
     """ InfoQ web client entry point"""
@@ -88,10 +68,10 @@ class InfoQ(object):
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
 
-    def _login(self, username, password):
+    def login(self, username, password):
         """ Log in.
 
-        An exception is raised if authentication fails.
+        AuthenticationFailedException exception is raised if authentication fails.
         """
         url = get_url("/login.action", scheme="https")
         params = {
@@ -102,10 +82,9 @@ class InfoQ(object):
         }
         response = self.opener.open(url, urllib.urlencode(params))
         if not "loginAction_ok.jsp" in response.url:
-            raise Exception("Login failed")
+            raise AuthenticationFailedException("Login failed")
 
         self.authenticated = True
-
 
     def presentation_summaries(self, filter=None):
         """ Generate presentation summaries in a reverse chronological order.
@@ -114,13 +93,54 @@ class InfoQ(object):
         """
         try:
             for page_index in xrange(1000):
-                rb = RightBarPage(page_index)
-                rb.fetch(self.opener)
+                rb = RightBarPage(page_index, self)
                 for summary in rb.summaries():
                     if not filter or filter.filter(summary):
                         yield summary
         except StopIteration:
             pass
+
+    def fetch(self, url):
+        """ Fetch the resource specified and return its content.
+
+            DownloadFailedException is raised if the resource cannot be fetched.
+        """
+        try:
+            response = self.opener.open(url)
+            return response.read()
+        except urllib2.URLError as e:
+            raise DownloadFailedException("Failed to get %s.: %s" % (url, e))
+
+    def download(self, url, dir_path):
+        content = self.fetch(url)
+
+        filename =  url.rsplit('/', 1)[1]
+        filename = os.path.join(dir_path, filename)
+        with open(filename, "w") as f:
+            f.write(content)
+
+        return filename
+
+    def download_all(self, urls, dir_path):
+        """ Download all the resources specified by urls into dir_path. The resulting
+            file paths is returned.
+
+            DownloadFailedException is raised if at least one of the resources cannot be downloaded.
+            In the case already downloaded resources are erased.
+        """
+
+        # TODO: Implement parallel download
+        filenames = []
+
+        try:
+            for url in urls:
+                filenames.append(self.download(url, dir_path))
+        except DownloadFailedException as e:
+            for filename in filenames:
+                os.remove(filename)
+            raise e
+
+        return filenames
 
 
 class MaxPagesFilter(object):
@@ -137,25 +157,25 @@ class MaxPagesFilter(object):
         self.seen += 1
         return presentation_summary
 
+
 class Presentation(object):
+    """ An InfoQ presentation.
 
-    def __init__(self, id, opener=urllib2.build_opener()):
+    """
+    def __init__(self, id, iq):
         self.id = id
-        self.opener = opener
+        self.iq = iq
 
-    def fetch(self):
+    def _fetch(self):
         """Download the page and create the soup"""
         url = get_url("/presentations/" + self.id)
-        response = self.opener.open(url)
-        if response.getcode() != 200:
-            raise Exception("Fetching presentation %s failed" % url)
-        return BeautifulSoup(response.read(), "html5lib")
-
+        content = self.iq.fetch(url)
+        return BeautifulSoup(content, "html5lib")
 
     @property
     def soup(self):
         if not hasattr(self, "_soup"):
-            self._soup = self.fetch()
+            self._soup = self._fetch()
 
         return self._soup
 
@@ -289,12 +309,9 @@ class Presentation(object):
         return self._metadata
 
 
-
-
 class OfflinePresentation(object):
 
-    def __init__(self, client, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
-        self.client = client
+    def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
         self.presentation = presentation
         self.ffmpeg = ffmpeg
         self.rtmpdump = rtmpdump
@@ -308,27 +325,89 @@ class OfflinePresentation(object):
         return self._tmp_dir
 
     @property
-    def audio_path(self):
+    def _audio_path(self):
         return os.path.join(self.tmp_dir, "audio.ogg")
 
     @property
-    def video_path(self):
+    def _video_path(self):
         return os.path.join(self.tmp_dir, 'video.avi')
 
-    def create_presentation(self, output=None):
-        if self.client.authenticated:
+    def create_presentation(self, output_path):
+        ''' Create the presentation.
+
+        The audio track is mixed with the slides. The resulting file is saved as output_path
+
+        DownloadFailedException is raised if some resources cannot be fetched.
+        '''
+        try:
             audio = self.download_mp3()
-        else:
+        except DownloadFailedException:
             video = self.download_video()
             audio = self._extractAudio(video)
 
         swf_slides = self.download_slides()
-        png_slides = self.convert_slides(swf_slides)
-        frame_pattern = self.prepare_frames(png_slides)
-        output = self.assemble(audio, frame_pattern, output)
+
+        # Convert slides into PNG since ffmpeg does not support SWF
+        png_slides = self._convert_slides(swf_slides)
+        # Create one frame per second using the timecode information
+        frame_pattern = self._prepare_frames(png_slides)
+        # Now Build the video file
+        output = self._assemble(audio, frame_pattern, output_path)
+
         return output
 
-    def assemble(self, audio, frame_pattern, output=None):
+    def download_video(self, output_path=None):
+        ''' Download the video.
+
+        If output_path is specified video is downloaded at this location. Otherwise the tmp_dir
+        is used. The location of the video file is returned.
+
+        A DownloadFailedException is raised if the download failed.
+        '''
+        video_url =  self.presentation.metadata['video']
+        if not output_path:
+            video_name = video_url.rsplit('/', 2)[1]
+            output_path = self._video_path
+
+        cmd = [self.rtmpdump, '-r', video_url, "-o", output_path]
+        try:
+            ret = subprocess.call(cmd, stdout=None, stderr = None)
+            if ret != 0:
+                os.unlink(output_path)
+                raise DownloadFailedException("Failed to download video at %s: rtmpdump exited with %s" % video_url, ret)
+        except OSError as e:
+            raise DownloadFailedException("Failed to download video at %s: %s" % video_url, e)
+
+        return output_path
+
+    def download_slides(self, output_dir=None):
+        ''' Download all SWF slides.
+
+        If output_dir is specified slides are downloaded at this location. Otherwise the
+        tmp_dir is used. The location of the slides files are returned.
+
+        A DownloadFailedException is raised if at least one of the slides cannot be download..
+        '''
+        if not output_dir:
+            output_dir = self.tmp_dir
+
+        return self.presentation.iq.download_all(self.presentation.metadata['slides'], self.tmp_dir)
+
+    def download_mp3(self, output_path=None):
+        ''' Download the audio track.
+
+        If output_path is specified the audio track is downloaded at this location. Otherwise
+        the tmp_dir is used. The location of the file is returned.
+
+        A DownloadFailedException is raised if the file cannot be downloaded.
+        '''
+        if not output_path:
+            output_path = self._audio_path
+
+        return self.presentation.iq.download(self.presentation.metadata['mp3'], self.tmp_dir)
+
+
+    def _assemble(self, audio, frame_pattern, output=None):
         if not output:
             output = os.path.join(self.tmp_dir, "output.avi")
         cmd = [self.ffmpeg, "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
@@ -336,21 +415,6 @@ class OfflinePresentation(object):
         assert ret == 0
         return output
 
-    def download_video(self):
-        video_url =  self.presentation.metadata['video']
-        video_name = video_url.rsplit('/', 2)[1]
-        video_path = self.video_path
-
-        cmd = [self.rtmpdump, '-r', video_url, "-o", video_path]
-        ret = subprocess.call(cmd, stdout=None, stderr = None)
-        assert ret == 0, cmd
-        return video_path
-
-    def download_slides(self):
-        return fetch_all(self.client.client, self.presentation.metadata['slides'], self.tmp_dir)
-
-    def download_mp3(self):
-        return fetch(self.client.client, self.presentaion.metadata['mp3'], self.tmp_dir)
 
     def _extractAudio(self, video_path):
         cmd = [self.ffmpeg, '-i', video_path, '-vn', '-acodec', 'libvorbis', self.audio_path]
@@ -358,11 +422,11 @@ class OfflinePresentation(object):
         assert ret == 0
         return self.audio_path
 
-    def convert_slides(self, swf_slides):
+    def _convert_slides(self, swf_slides):
         swf_render = SwfConverter(swfrender=self.swfrender)
         return [swf_render.to_png(s) for s in swf_slides]
 
-    def prepare_frames(self, slides):
+    def _prepare_frames(self, slides):
         timecodes = self.presentation.metadata['timecodes']
 
         frame = 0
@@ -379,21 +443,25 @@ class RightBarPage(object):
 
     This page lists all available presentations with pagination.
     """
-    def __init__(self, index):
+    def __init__(self, index, iq):
         self.index = index
+        self.iq = iq
 
-    def fetch(self, client):
+    @property
+    def soup(self):
         """Download the page and create the soup"""
+        try:
+            return self._soup
+        except AttributeError:
+            params = {
+                "language": "en",
+                "selectedTab": "PRESENTATION",
+                "startIndex": self.index,
+            }
 
-        params = {
-            "language": "en",
-            "selectedTab": "PRESENTATION",
-            "startIndex": self.index,
-        }
-        response = client.open(get_url("/rightbar.action"), urllib.urlencode(params))
-        if response.getcode() != 200:
-            raise Exception("Fetching rightbar index %s failed" % self.index)
-        self.soup = BeautifulSoup(response.read())
+            content = self.iq.fetch(get_url("/rightbar.action"))
+            self._soup = BeautifulSoup(content)
+            return self._soup
 
     def summaries(self):
         """Return a list of all the presentation summaries contained in this page"""
