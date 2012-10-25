@@ -32,6 +32,8 @@ import os
 import argparse
 import sys
 import subprocess
+import re
+
 
 def check_dependencies(bins):
     ok = True
@@ -44,6 +46,19 @@ def check_dependencies(bins):
             ok = False
 
     return ok
+
+def extract_id(arg):
+    mo = re.search("^https?://www.infoq.com/presentations/([^/])$", arg)
+    if mo:
+        return mo.group(1)
+    else:
+        return arg
+
+def chose_output(output, id):
+    if output:
+        return output
+
+    return u"%s.avi" % id
 
 def main():
     parser = argparse.ArgumentParser(description='Download presentations from InfoQ.')
@@ -59,14 +74,15 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.output:
-        args.output = "%s.avi" % args.name
+    # Check required tools are available before doing any useful workd
+    if not check_dependencies([args.ffmpeg, args.swfrender, args.rtmpdump]):
+        sys.exit(1)
+
+    # Process arguments
+    id = extract_id(args.name)
+    output = chose_output(args.output, id)
 
     try:
-        if not check_dependencies([args.ffmpeg, args.swfrender, args.rtmpdump]):
-            sys.exit(1)
-
-        id = args.name
         iq = infoq.InfoQ()
         presentation = infoq.Presentation(id, iq)
         builder = infoq.OfflinePresentation(presentation,
