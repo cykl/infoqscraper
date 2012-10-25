@@ -145,6 +145,12 @@ class TestInfoQ(unittest2.TestCase):
         self.assertEqual(count, infoq.RIGHT_BAR_ENTRIES_PER_PAGES)
 
     @use_cache
+    def test_presentation_clojure_expression_problem(self):
+        p = infoq.Presentation("Clojure-Expression-Problem", self.iq)
+
+        self.assertValidPresentationMetadata(p.metadata)
+
+    @use_cache
     def test_presentation_java_gc_azul(self):
         p = infoq.Presentation("Java-GC-Azul-C4", self.iq)
 
