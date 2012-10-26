@@ -555,16 +555,27 @@ class OfflinePresentation(object):
     def _assemble(self, audio, frame_pattern, output=None):
         if not output:
             output = os.path.join(self.tmp_dir, "output.avi")
-        cmd = [self.ffmpeg, "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
-        ret = subprocess.call(cmd, stdout=None, stderr=None)
-        assert ret == 0
+
+        try:
+            cmd = [self.ffmpeg, "-v", "error", "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
+            ret = subprocess.call(cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise Exception("Failed to create final movie as %s.\n"
+                    "\tExit code: %s\n"
+                    "\tOutput:\n%s"
+                    % (output, e.returncode, e.output))
         return output
 
     def _extractAudio(self, video_path):
         output_path = self._audio_path
-        cmd = [self.ffmpeg, '-i', video_path, '-vn', '-acodec', 'libvorbis', output_path]
-        ret = subprocess.call(cmd , stdout=None, stderr=None)
-        assert ret == 0
+        try:
+            cmd = [self.ffmpeg, "-v", "error", '-i', video_path, '-vn', '-acodec', 'libvorbis', output_path]
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise Exception("Failed to extract audio track from %s to %s.\n"
+                            "\tExit code: %s\n"
+                            "\tOutput:\n%s"
+                            % (video_path, output_path, e.returncode, e.output))
         return output_path
 
     def _convert_slides(self, swf_slides):
