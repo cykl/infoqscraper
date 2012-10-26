@@ -681,7 +681,8 @@ class SwfConverter(object):
             cmd = [self.swfrender, swf_path, '-o', png_path]
             subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
-            raise Exception('Failed to convert SWF. swfrender exited with status %s. standard and error output follows:\n%s' % (e.returncode, e.output))
+            raise Exception(u"Failed to convert SWF file %s.\n"
+                            u"\tExit status: %s.\n\tOutput:\n%s" % (swf_path, e.returncode, e.output))
 
         return png_path
 
