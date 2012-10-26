@@ -229,13 +229,13 @@ class InfoQ(object):
     def download(self, url, dir_path, filename=None):
         if not filename:
             filename =  url.rsplit('/', 1)[1]
+        path = os.path.join(dir_path, filename)
 
         content = self.fetch(url)
-
-        with open(os.path.join(dir_path, filename), "w") as f:
+        with open(path, "w") as f:
             f.write(content)
 
-        return filename
+        return path
 
     def download_all(self, urls, dir_path):
         """ Download all the resources specified by urls into dir_path. The resulting
