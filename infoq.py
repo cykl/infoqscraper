@@ -5,11 +5,6 @@
 Visit http;//www.infoq.com
 
 """
-import base64
-import shutil
-import subprocess
-import tempfile
-import os
 
 __version__ = "0.0.1-dev"
 __license__ = """
@@ -40,13 +35,20 @@ __contributors__ = [
 
 ]
 
+import bs4
+import cookielib
+import base64
 import datetime
-import urllib, urllib2
-import re
-from cookielib import CookieJar
-from bs4 import BeautifulSoup
-from bs4.element import Tag, NavigableString
 import errno
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import urllib
+import urllib2
+
+
 
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
@@ -170,7 +172,7 @@ class InfoQ(object):
     def __init__(self, cache_enabled=False):
         self.authenticated = False
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
         self.cache_enabled = cache_enabled
 
     def login(self, username, password):
@@ -287,7 +289,7 @@ class Presentation(object):
         """Download the page and create the soup"""
         url = get_url("/presentations/" + self.id)
         content = self.iq.fetch(url)
-        return BeautifulSoup(content, "html5lib")
+        return bs4.BeautifulSoup(content, "html5lib")
 
     @property
     def metadata(self):
@@ -357,7 +359,7 @@ class Presentation(object):
             topics = []
 
             for child in bc3.find('dl', class_="tags2").children:
-                if not isinstance(child, Tag):
+                if not isinstance(child, bs4.element.Tag):
                     continue
 
                 if child.name == 'dt' and "topics" in child['class']:
@@ -382,7 +384,7 @@ class Presentation(object):
 
             txt = ""
             for child in bc3.find('div', id="summaryComponent"):
-                if isinstance(child, NavigableString):
+                if isinstance(child, bs4.element.NavigableString):
                     txt += unicode(child).strip()
                 elif child.name == 'b':
                     content.append(txt)
@@ -620,7 +622,7 @@ class RightBarPage(object):
                 raise Exception("Fetching rightbar index %s failed" % self.index)
             content = response.read()
 
-            self._soup = BeautifulSoup(content)
+            self._soup = bs4.BeautifulSoup(content)
             return self._soup
 
     def summaries(self):

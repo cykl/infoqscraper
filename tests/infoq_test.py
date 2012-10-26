@@ -1,10 +1,10 @@
 import datetime
+import infoq
+import os
 import pprint
 import shutil
 import tempfile
-import os
 import unittest2
-import infoq
 
 try:
     USERNAME = os.environ['INFOQ_USERNAME']

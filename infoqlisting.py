@@ -26,10 +26,10 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import infoq
 
-import re
 import argparse
+import infoq
+import re
 import sys
 
 class _Filter(infoq.MaxPagesFilter):

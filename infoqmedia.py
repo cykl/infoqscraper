@@ -27,12 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
+import argparse
 import infoq
 import os
-import argparse
-import sys
-import subprocess
 import re
+import subprocess
+import sys
 
 
 def check_dependencies(bins):
