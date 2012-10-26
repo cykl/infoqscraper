@@ -487,7 +487,7 @@ class OfflinePresentation(object):
             video_path = cache_get_file(video_url)
             if not video_path:
                 video_path = self.download_video_no_cache(output_path=output_path)
-            cache_put_file(video_url, video_path)
+                cache_put_file(video_url, video_path)
         else:
             video_path = self.download_video_no_cache(output_path=output_path)
 
