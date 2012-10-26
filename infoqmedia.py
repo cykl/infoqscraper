@@ -66,6 +66,7 @@ def main():
     parser.add_argument('-s', '--swfrender', nargs="?", type=str, default="swfrender", help='swfrender binary')
     parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
     parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
+    parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
 #    parser.add_argument('-j', '--jpeg'     , action="store_true", help='Use JPEG rather than PNG (for buggy ffmpeg versions)')
 #    parser.add_argument('-q', '--quiet'    , action='store_true', help='quiet mode')
 #    parser.add_argument('-d', '--debug'    , action='store_true', help='debug mode')
@@ -83,7 +84,8 @@ def main():
     output = chose_output(args.output, id)
 
     try:
-        iq = infoq.InfoQ()
+        iq = infoq.InfoQ(cache_enabled=args.cache)
+
         try:
             presentation = infoq.Presentation(id, iq)
         except infoq.DownloadFailedException as e:

@@ -10,7 +10,6 @@ import subprocess
 import tempfile
 import os
 
-
 __version__ = "0.0.1-dev"
 __license__ = """
 Copyright (c) 2012, Clément MATHIEU
@@ -46,9 +45,15 @@ import re
 from cookielib import CookieJar
 from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString
+import errno
 
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
+
+HOME = os.path.expanduser("~")
+XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache"))
+# infoqmedia cache dir
+CACHE_DIR = os.path.join(XDG_CACHE_HOME, "infoqmedia")
 
 class DownloadFailedException(Exception):
     pass
@@ -56,17 +61,116 @@ class DownloadFailedException(Exception):
 class AuthenticationFailedException(Exception):
     pass
 
+class CacheError(Exception):
+    pass
 
 def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
+def _cache_get_path(resource_url):
+    return os.path.join(CACHE_DIR, "resources", resource_url)
+
+def cache_get_content(resource_url):
+    """Returns the content of a cached resource.
+
+    Args:
+        resource_url: The url of the resource
+
+    Returns:
+        The content of the resource or None if not in the cache
+    """
+    cache_path = _cache_get_path(resource_url)
+    try:
+        with open(cache_path, 'rb') as f:
+            return f.read()
+    except IOError:
+        return None
+
+def cache_get_file(resource_url):
+    """Returns the path of a cached resource.
+
+    Args:
+        resource_url: The url of the resource
+
+    Returns:
+        The file of the resource or None if not in the cache
+    """
+    cache_path = _cache_get_path(resource_url)
+    if os.path.exists(cache_path):
+        return cache_path
+
+    return None
+
+def cache_put_content(resource_url, content):
+    """Puts the content of a resource into the disk cache.
+
+    Args:
+        resource_url: The url of the resource
+        content: The content of the resource
+
+    Raises:
+        CacheError: If the content cannot be put in cache
+    """
+    cache_path = _cache_get_path(resource_url)
+    # Ensure that cache directories exist
+    try:
+        dir = os.path.dirname(cache_path)
+        os.makedirs(dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise CacheError('Failed to create cache directories for ' % cache_path)
+
+    try:
+        with open(cache_path, 'wb') as f:
+            f.write(content)
+    except IOEerror as e:
+        raise CacheError('Failed to write in %s' % cache_path)
+
+def cache_put_file(resource_url, file_path):
+    """Puts an already downloaded resource into the disk cache.
+
+    Args:
+        resource_url: The original url of the resource
+        file_path: The resource already available on disk
+
+    Raises:
+        CacheError: If the file cannot be put in cache
+    """
+    cache_path = _cache_get_path(resource_url)
+
+    # Ensure that cache directories exist
+    try:
+        dir = os.path.dirname(cache_path)
+        os.makedirs(dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise CacheError('Failed to create cache directories for ' % cache_path)
+
+    try:
+        # First try hard link to avoid wasting disk space & overhead
+        os.link(file_path, cache_path)
+    except OSError:
+        try:
+            # Use file copy as fallaback
+            shutil.copyfile(file_path, cache_path)
+        except IOError:
+            raise CacheError('Failed to save %s as %s' % (file_path, cache_path))
+
+
 class InfoQ(object):
-    """ InfoQ web client entry point"""
-    def __init__(self):
+    """ InfoQ web client entry point
+
+    Attributes:
+        authenticated       If logged in or not
+        cache_enabled       If remote resources must be cached on disk or not
+    """
+
+    def __init__(self, cache_enabled=False):
         self.authenticated = False
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
+        self.cache_enabled = cache_enabled
 
     def login(self, username, password):
         """ Log in.
@@ -101,6 +205,17 @@ class InfoQ(object):
             pass
 
     def fetch(self, url):
+        content = None
+        if self.cache_enabled:
+            content = cache_get_content(url)
+            if not content:
+                content = self.fetch_no_cache(url)
+            cache_put_content(url, content)
+            return content
+        else:
+            return self.fetch_no_cache(url)
+
+    def fetch_no_cache(self, url):
         """ Fetch the resource specified and return its content.
 
             DownloadFailedException is raised if the resource cannot be fetched.
@@ -350,27 +465,63 @@ class OfflinePresentation(object):
 
         return output
 
+
     def download_video(self, output_path=None):
-        ''' Download the video.
+        """Downloads the video.
 
-        If output_path is specified video is downloaded at this location. Otherwise the tmp_dir
-        is used. The location of the video file is returned.
+        If self.iq.cache_enabled is True, then the disk cache is used.
 
-        A DownloadFailedException is raised if the download failed.
-        '''
+        Args:
+            output_path: Where to save the video if not already cached. A
+                         file in temporary directory is used if None.
+
+        Returns:
+            The path where the video has been saved. Please note that it can not be equals
+            to output_path if the video is in cache
+
+        Raises:
+            DownloadFailedException: If the video cannot be downloaded.
+        """
         video_url =  self.presentation.metadata['video']
+
+        if self.presentation.iq.cache_enabled:
+            video_path = cache_get_file(video_url)
+            if not video_path:
+                video_path = self.download_video_no_cache(output_path=output_path)
+            cache_put_file(video_url, video_path)
+        else:
+            video_path = self.download_video_no_cache(output_path=output_path)
+
+        return video_path
+
+    def download_video_no_cache(self, output_path=None):
+        """Downloads the video.
+
+        Args:
+            output_path: Where to save the video. A file in temporary directory is
+                         used if None.
+
+        Returns:
+            The path where the video has been saved.
+
+        Raises:
+            DownloadFailedException: If the video cannot be downloaded.
+        """
+        video_url =  self.presentation.metadata['video']
+
         if not output_path:
             video_name = video_url.rsplit('/', 2)[1]
             output_path = self._video_path
 
-        cmd = [self.rtmpdump, '-r', video_url, "-o", output_path]
         try:
-            ret = subprocess.call(cmd, stdout=None, stderr = None)
-            if ret != 0:
+            cmd = [self.rtmpdump, '-q', '-r', video_url, "-o", output_path]
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            try:
                 os.unlink(output_path)
-                raise DownloadFailedException("Failed to download video at %s: rtmpdump exited with %s" % video_url, ret)
-        except OSError as e:
-            raise DownloadFailedException("Failed to download video at %s: %s" % video_url, e)
+            except OSError:
+                pass
+            raise DownloadFailedException("Failed to download video at %s: rtmpdump exited with %s" % (video_url, e.returncode))
 
         return output_path
 
@@ -400,7 +551,6 @@ class OfflinePresentation(object):
 
         return self.presentation.iq.download(self.presentation.metadata['mp3'], self.tmp_dir)
 
-
     def _assemble(self, audio, frame_pattern, output=None):
         if not output:
             output = os.path.join(self.tmp_dir, "output.avi")
@@ -409,12 +559,12 @@ class OfflinePresentation(object):
         assert ret == 0
         return output
 
-
     def _extractAudio(self, video_path):
-        cmd = [self.ffmpeg, '-i', video_path, '-vn', '-acodec', 'libvorbis', self.audio_path]
+        output_path = self._audio_path
+        cmd = [self.ffmpeg, '-i', video_path, '-vn', '-acodec', 'libvorbis', output_path]
         ret = subprocess.call(cmd , stdout=None, stderr=None)
         assert ret == 0
-        return self.audio_path
+        return output_path
 
     def _convert_slides(self, swf_slides):
         swf_render = SwfConverter(swfrender=self.swfrender)
@@ -452,7 +602,7 @@ class RightBarPage(object):
                 "selectedTab": "PRESENTATION",
                 "startIndex": self.index,
             }
-
+            # Do not use iq.fetch to avoid caching since the rightbar is a dynamic page
             response = self.iq.opener.open(get_url("/rightbar.action"), urllib.urlencode(params))
             if response.getcode() != 200:
                 raise Exception("Fetching rightbar index %s failed" % self.index)
@@ -526,10 +676,12 @@ class SwfConverter(object):
         if not png_path:
             png_path = swf_path.replace(".swf", ".png")
 
-        cmd = [self.swfrender, swf_path, '-o', png_path]
-        ret = subprocess.call(cmd, stdout=self._stdout, stderr=self._stderr)
-        if ret != 0:
-            raise Exception('Failed to convert SWF')
+        try:
+            cmd = [self.swfrender, swf_path, '-o', png_path]
+            subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            raise Exception('Failed to convert SWF. swfrender exited with status %s. standard and error output follows:\n%s' % (e.returncode, e.output))
+
         return png_path
 
     def to_jpeg(self, swf_path, jpg_path):

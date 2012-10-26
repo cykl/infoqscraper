@@ -5,7 +5,6 @@ import tempfile
 import os
 import unittest2
 import infoq
-import errno
 
 try:
     USERNAME = os.environ['INFOQ_USERNAME']
@@ -17,45 +16,12 @@ try:
 except  KeyError:
     PASSWORD = None
 
-HOME = os.path.expanduser("~")
-XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache"))
-CACHE_DIR = os.path.join(XDG_CACHE_HOME, "infoqmedia", "tests")
-
-if not os.path.exists(CACHE_DIR):
-    os.makedirs(CACHE_DIR)
-
-def proxy_fetch(real_fetch):
-    ''' A Infoq.fetch replacement function that serve cached resources and cache them if not available.'''
-    def inner(url):
-        file_path = os.path.join(CACHE_DIR, url.replace('http://', ''))
-        content = None
-        if os.path.exists(file_path):
-            # Served cached content
-            with open(file_path, 'rb') as f:
-                content = f.read()
-        else:
-            # Fech the remote resource and cache it
-            content = real_fetch(url)
-            try: # Directory must be created before calling open
-                dir = os.path.dirname(file_path)
-                os.makedirs(dir)
-            except OSError as exception:
-                if exception.errno != errno.EEXIST:
-                    raise
-            with open(file_path, 'wb') as f:
-                f.write(content)
-        return content
-
-    return inner
-
 def use_cache(func):
     ''' A decorator to indicate that the test should try to use cached resources rather than using the website.'''
     def _use_cache(self, *args, **kwargs):
-        fetch = proxy_fetch(self.iq.fetch)
-        self.iq.fetch = fetch
+        self.iq.cache_enabled = True
         func(self, *args, **kwargs)
     return _use_cache
-
 
 class TestInfoQ(unittest2.TestCase):
     def setUp(self):
