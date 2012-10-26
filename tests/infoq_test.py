@@ -1,3 +1,4 @@
+import cache
 import datetime
 import infoq
 import os
@@ -17,9 +18,9 @@ except  KeyError:
     PASSWORD = None
 
 def use_cache(func):
-    ''' A decorator to indicate that the test should try to use cached resources rather than using the website.'''
+    """ A decorator to indicate that the test should try to use cached resources rather than using the website."""
     def _use_cache(self, *args, **kwargs):
-        self.iq.cache_enabled = True
+        self.iq.cache = cache.Cache()
         func(self, *args, **kwargs)
     return _use_cache
 

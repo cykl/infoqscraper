@@ -5,6 +5,7 @@
 Visit http;//www.infoq.com
 
 """
+import cache
 
 __version__ = "0.0.1-dev"
 __license__ = """
@@ -39,141 +40,47 @@ import bs4
 import cookielib
 import base64
 import datetime
-import errno
 import os
 import re
-import shutil
 import subprocess
 import tempfile
 import urllib
 import urllib2
 
 
-
 # Number of presentation entries per page returned by rightbar.action
 RIGHT_BAR_ENTRIES_PER_PAGES = 8
-
-HOME = os.path.expanduser("~")
-XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache"))
-# infoqmedia cache dir
-CACHE_DIR = os.path.join(XDG_CACHE_HOME, "infoqmedia")
 
 class DownloadFailedException(Exception):
     pass
 
+
 class AuthenticationFailedException(Exception):
     pass
 
-class CacheError(Exception):
-    pass
+
 
 def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
-
-def _cache_get_path(resource_url):
-    return os.path.join(CACHE_DIR, "resources", resource_url)
-
-def cache_get_content(resource_url):
-    """Returns the content of a cached resource.
-
-    Args:
-        resource_url: The url of the resource
-
-    Returns:
-        The content of the resource or None if not in the cache
-    """
-    cache_path = _cache_get_path(resource_url)
-    try:
-        with open(cache_path, 'rb') as f:
-            return f.read()
-    except IOError:
-        return None
-
-def cache_get_file(resource_url):
-    """Returns the path of a cached resource.
-
-    Args:
-        resource_url: The url of the resource
-
-    Returns:
-        The file of the resource or None if not in the cache
-    """
-    cache_path = _cache_get_path(resource_url)
-    if os.path.exists(cache_path):
-        return cache_path
-
-    return None
-
-def cache_put_content(resource_url, content):
-    """Puts the content of a resource into the disk cache.
-
-    Args:
-        resource_url: The url of the resource
-        content: The content of the resource
-
-    Raises:
-        CacheError: If the content cannot be put in cache
-    """
-    cache_path = _cache_get_path(resource_url)
-    # Ensure that cache directories exist
-    try:
-        dir = os.path.dirname(cache_path)
-        os.makedirs(dir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise CacheError('Failed to create cache directories for ' % cache_path)
-
-    try:
-        with open(cache_path, 'wb') as f:
-            f.write(content)
-    except IOError:
-        raise CacheError('Failed to write in %s' % cache_path)
-
-def cache_put_file(resource_url, file_path):
-    """Puts an already downloaded resource into the disk cache.
-
-    Args:
-        resource_url: The original url of the resource
-        file_path: The resource already available on disk
-
-    Raises:
-        CacheError: If the file cannot be put in cache
-    """
-    cache_path = _cache_get_path(resource_url)
-
-    # Ensure that cache directories exist
-    try:
-        dir = os.path.dirname(cache_path)
-        os.makedirs(dir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise CacheError('Failed to create cache directories for ' % cache_path)
-
-    try:
-        # First try hard link to avoid wasting disk space & overhead
-        os.link(file_path, cache_path)
-    except OSError:
-        try:
-            # Use file copy as fallaback
-            shutil.copyfile(file_path, cache_path)
-        except IOError:
-            raise CacheError('Failed to save %s as %s' % (file_path, cache_path))
 
 
 class InfoQ(object):
     """ InfoQ web client entry point
 
     Attributes:
-        authenticated       If logged in or not
-        cache_enabled       If remote resources must be cached on disk or not
+        authenticated:       If logged in or not
+        cache:              None if caching is disable. A Cache object otherwise
     """
 
     def __init__(self, cache_enabled=False):
         self.authenticated = False
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-        self.cache_enabled = cache_enabled
+        self.cache = None
+        if cache_enabled:
+            self.cache = cache.Cache()
+
 
     def login(self, username, password):
         """ Log in.
@@ -208,11 +115,11 @@ class InfoQ(object):
             pass
 
     def fetch(self, url):
-        if self.cache_enabled:
-            content = cache_get_content(url)
+        if self.cache:
+            content = self.cache.get_content(url)
             if not content:
                 content = self.fetch_no_cache(url)
-            cache_put_content(url, content)
+                self.cache.put_content(url, content)
             return content
         else:
             return self.fetch_no_cache(url)
@@ -485,11 +392,11 @@ class OfflinePresentation(object):
         """
         video_url =  self.presentation.metadata['video']
 
-        if self.presentation.iq.cache_enabled:
-            video_path = cache_get_file(video_url)
+        if self.presentation.iq.cache:
+            video_path = self.presentation.iq.cache.get_path(video_url)
             if not video_path:
                 video_path = self.download_video_no_cache(output_path=output_path)
-                cache_put_file(video_url, video_path)
+                self.presentation.iq.cache.put_path(video_url, video_path)
         else:
             video_path = self.download_video_no_cache(output_path=output_path)
 
