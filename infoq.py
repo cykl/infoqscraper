@@ -6,6 +6,7 @@ Visit http;//www.infoq.com
 
 """
 import base64
+import shutil
 import subprocess
 import tempfile
 import os
@@ -124,7 +125,7 @@ def cache_put_content(resource_url, content):
     try:
         with open(cache_path, 'wb') as f:
             f.write(content)
-    except IOEerror as e:
+    except IOError:
         raise CacheError('Failed to write in %s' % cache_path)
 
 def cache_put_file(resource_url, file_path):
@@ -205,7 +206,6 @@ class InfoQ(object):
             pass
 
     def fetch(self, url):
-        content = None
         if self.cache_enabled:
             content = cache_get_content(url)
             if not content:
@@ -226,12 +226,13 @@ class InfoQ(object):
         except urllib2.URLError as e:
             raise DownloadFailedException("Failed to get %s.: %s" % (url, e))
 
-    def download(self, url, dir_path):
+    def download(self, url, dir_path, filename=None):
+        if not filename:
+            filename =  url.rsplit('/', 1)[1]
+
         content = self.fetch(url)
 
-        filename =  url.rsplit('/', 1)[1]
-        filename = os.path.join(dir_path, filename)
-        with open(filename, "w") as f:
+        with open(os.path.join(dir_path, filename), "w") as f:
             f.write(content)
 
         return filename
@@ -327,7 +328,6 @@ class Presentation(object):
 
         def add_pdf_if_exist(metadata, bc3):
             # The markup is not the same if authenticated or not
-            filename = None
             form = bc3.find('form', id="pdfForm")
             if form:
                 metadata['pdf'] = get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
@@ -338,7 +338,6 @@ class Presentation(object):
 
         def add_mp3_if_exist(metadata, bc3):
             # The markup is not the same if authenticated or not
-            filename = None
             form = bc3.find('form', id="mp3Form")
             if form:
                 metadata['mp3'] = get_url('/mp3download.action?filename=') + urllib.quote(form.input['value'], safe='')
@@ -370,10 +369,10 @@ class Presentation(object):
                     continue
 
                 if in_sections and child.name == 'dd':
-                    sections.append(child.a.get_text().strip());
+                    sections.append(child.a.get_text().strip())
 
                 if in_topics and child.name == 'dd':
-                    topics.append(child.a.get_text().strip());
+                    topics.append(child.a.get_text().strip())
 
             metadata['sections'] = sections
             metadata['topics'] = topics
@@ -442,12 +441,12 @@ class OfflinePresentation(object):
         return os.path.join(self.tmp_dir, 'video.avi')
 
     def create_presentation(self, output_path):
-        ''' Create the presentation.
+        """ Create the presentation.
 
         The audio track is mixed with the slides. The resulting file is saved as output_path
 
         DownloadFailedException is raised if some resources cannot be fetched.
-        '''
+        """
         try:
             audio = self.download_mp3()
         except DownloadFailedException:
@@ -510,12 +509,11 @@ class OfflinePresentation(object):
         video_url =  self.presentation.metadata['video']
 
         if not output_path:
-            video_name = video_url.rsplit('/', 2)[1]
             output_path = self._video_path
 
         try:
             cmd = [self.rtmpdump, '-q', '-r', video_url, "-o", output_path]
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             try:
                 os.unlink(output_path)
@@ -526,30 +524,33 @@ class OfflinePresentation(object):
         return output_path
 
     def download_slides(self, output_dir=None):
-        ''' Download all SWF slides.
+        """ Download all SWF slides.
 
         If output_dir is specified slides are downloaded at this location. Otherwise the
         tmp_dir is used. The location of the slides files are returned.
 
         A DownloadFailedException is raised if at least one of the slides cannot be download..
-        '''
+        """
         if not output_dir:
             output_dir = self.tmp_dir
 
-        return self.presentation.iq.download_all(self.presentation.metadata['slides'], self.tmp_dir)
+        return self.presentation.iq.download_all(self.presentation.metadata['slides'], output_dir)
 
     def download_mp3(self, output_path=None):
-        ''' Download the audio track.
+        """ Download the audio track.
 
         If output_path is specified the audio track is downloaded at this location. Otherwise
         the tmp_dir is used. The location of the file is returned.
 
         A DownloadFailedException is raised if the file cannot be downloaded.
-        '''
+        """
         if not output_path:
             output_path = self._audio_path
 
-        return self.presentation.iq.download(self.presentation.metadata['mp3'], self.tmp_dir)
+        dir = os.path.dirname(output_path)
+        filename = os.path.basename(output_path)
+
+        return self.presentation.iq.download(self.presentation.metadata['mp3'], dir, filename=filename)
 
     def _assemble(self, audio, frame_pattern, output=None):
         if not output:
@@ -567,7 +568,7 @@ class OfflinePresentation(object):
         return output_path
 
     def _convert_slides(self, swf_slides):
-        swf_render = SwfConverter(swfrender=self.swfrender)
+        swf_render = SwfConverter(swfrender_path=self.swfrender)
         return [swf_render.to_png(s) for s in swf_slides]
 
     def _prepare_frames(self, slides):
