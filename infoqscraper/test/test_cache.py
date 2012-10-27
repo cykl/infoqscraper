@@ -21,17 +21,17 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+from infoqscraper import cache
 import os
-
-import cache
 import shutil
 import tempfile
 import unittest2
 
+
 class TestCache(unittest2.TestCase):
 
     def setUp(self):
-        self.cache = cache.Cache()
+        self.cache = cache.XDGCache()
         self.cache.dir = tempfile.mkdtemp()
 
     def tearDown(self):

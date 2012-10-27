@@ -31,7 +31,7 @@ class Error(Exception):
     pass
 
 
-class Cache(object):
+class XDGCache(object):
     """A disk cache for resources.
 
     Remote resources can be cached to avoid to fetch them several times from the web server.

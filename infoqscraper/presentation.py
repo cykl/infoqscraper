@@ -1,173 +1,54 @@
-# -*- coding: UTF-8 -*-
-"""InfoQ web client
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2012, Clément MATHIEU
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Visit http;//www.infoq.com
-
-"""
-
-__version__ = "0.0.1-dev"
-__license__ = """
-Copyright (c) 2012, Clément MATHIEU
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-"""
-__author__ = "Clément MATHIEU <clement@unportant.info>"
-__contributors__ = [
-
-]
-
-import bs4
-import cache
-import contextlib
-import cookielib
 import base64
+import bs4
+import contextlib
 import datetime
+from infoqscraper import client
+from infoqscraper import utils
 import os
 import re
 import subprocess
 import tempfile
 import urllib
-import urllib2
 
+def get_summaries(client, filter=None):
+    """ Generate presentation summaries in a reverse chronological order.
 
-# Number of presentation entries per page returned by rightbar.action
-RIGHT_BAR_ENTRIES_PER_PAGES = 8
-
-class DownloadFailedException(Exception):
-    pass
-
-
-class AuthenticationFailedException(Exception):
-    pass
-
-
-
-def get_url(path, scheme="http"):
-    """ Return the full InfoQ URL """
-    return scheme + "://www.infoq.com" + path
-
-
-class InfoQ(object):
-    """ InfoQ web client entry point
-
-    Attributes:
-        authenticated:       If logged in or not
-        cache:              None if caching is disable. A Cache object otherwise
+     A filter class can be supplied to filter summaries or bound the fetching process.
     """
+    try:
+        for page_index in xrange(1000):
+            rb = _RightBarPage(client, page_index)
+            for summary in rb.summaries():
+                if not filter or filter.filter(summary):
+                    yield summary
+    except StopIteration:
+        pass
 
-    def __init__(self, cache_enabled=False):
-        self.authenticated = False
-        # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-        self.cache = None
-        if cache_enabled:
-            self.cache = cache.Cache()
-
-
-    def login(self, username, password):
-        """ Log in.
-
-        AuthenticationFailedException exception is raised if authentication fails.
-        """
-        url = get_url("/login.action", scheme="https")
-        params = {
-            'username': username,
-            'password': password,
-            'fromHeader': 'true',
-            'submit-login': '',
-        }
-        with contextlib.closing(self.opener.open(url, urllib.urlencode(params))) as response:
-            if not "loginAction_ok.jsp" in response.url:
-                raise AuthenticationFailedException("Login failed")
-
-        self.authenticated = True
-
-    def presentation_summaries(self, filter=None):
-        """ Generate presentation summaries in a reverse chronological order.
-
-         A filter class can be supplied to filter summaries or bound the fetching process.
-        """
-        try:
-            for page_index in xrange(1000):
-                rb = RightBarPage(page_index, self)
-                for summary in rb.summaries():
-                    if not filter or filter.filter(summary):
-                        yield summary
-        except StopIteration:
-            pass
-
-    def fetch(self, url):
-        if self.cache:
-            content = self.cache.get_content(url)
-            if not content:
-                content = self.fetch_no_cache(url)
-                self.cache.put_content(url, content)
-            return content
-        else:
-            return self.fetch_no_cache(url)
-
-    def fetch_no_cache(self, url):
-        """ Fetch the resource specified and return its content.
-
-            DownloadFailedException is raised if the resource cannot be fetched.
-        """
-        try:
-
-            with contextlib.closing(self.opener.open(url)) as response:
-                return response.read()
-        except urllib2.URLError as e:
-            raise DownloadFailedException("Failed to get %s.: %s" % (url, e))
-
-    def download(self, url, dir_path, filename=None):
-        if not filename:
-            filename =  url.rsplit('/', 1)[1]
-        path = os.path.join(dir_path, filename)
-
-        content = self.fetch(url)
-        with open(path, "w") as f:
-            f.write(content)
-
-        return path
-
-    def download_all(self, urls, dir_path):
-        """ Download all the resources specified by urls into dir_path. The resulting
-            file paths is returned.
-
-            DownloadFailedException is raised if at least one of the resources cannot be downloaded.
-            In the case already downloaded resources are erased.
-        """
-
-        # TODO: Implement parallel download
-        filenames = []
-
-        try:
-            for url in urls:
-                filenames.append(self.download(url, dir_path))
-        except DownloadFailedException as e:
-            for filename in filenames:
-                os.remove(filename)
-            raise e
-
-        return filenames
 
 
 class MaxPagesFilter(object):
@@ -178,7 +59,7 @@ class MaxPagesFilter(object):
         self.seen = 0
 
     def filter(self, presentation_summary):
-        if self.seen / RIGHT_BAR_ENTRIES_PER_PAGES >= self.max_pages:
+        if self.seen / _RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES >= self.max_pages:
             raise StopIteration
 
         self.seen += 1
@@ -189,15 +70,15 @@ class Presentation(object):
     """ An InfoQ presentation.
 
     """
-    def __init__(self, id, iq):
+    def __init__(self, client, id):
+        self.client = client
         self.id = id
-        self.iq = iq
         self.soup = self._fetch()
 
     def _fetch(self):
         """Download the page and create the soup"""
-        url = get_url("/presentations/" + self.id)
-        content = self.iq.fetch(url)
+        url = client.get_url("/presentations/" + self.id)
+        content = self.client.fetch(url)
         return bs4.BeautifulSoup(content, "html5lib")
 
     @property
@@ -228,7 +109,7 @@ class Presentation(object):
             for script in bc3.find_all('script'):
                 mo = re.search("var\s+slides\s?=\s?new\s+Array.?\(('.+')\)", script.get_text())
                 if mo:
-                    return [get_url(slide.replace('\'', '')) for slide in  mo.group(1).split(',')]
+                    return [client.get_url(slide.replace('\'', '')) for slide in  mo.group(1).split(',')]
 
         def get_video(bc3):
             for script in bc3.find_all('script'):
@@ -241,21 +122,21 @@ class Presentation(object):
             # The markup is not the same if authenticated or not
             form = bc3.find('form', id="pdfForm")
             if form:
-                metadata['pdf'] = get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
+                metadata['pdf'] = client.get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
             else:
                 a = bc3.find('a', class_='link-slides')
                 if a:
-                    metadata['pdf'] = get_url(a['href'])
+                    metadata['pdf'] = client.get_url(a['href'])
 
         def add_mp3_if_exist(metadata, bc3):
             # The markup is not the same if authenticated or not
             form = bc3.find('form', id="mp3Form")
             if form:
-                metadata['mp3'] = get_url('/mp3download.action?filename=') + urllib.quote(form.input['value'], safe='')
+                metadata['mp3'] = client.get_url('/mp3download.action?filename=') + urllib.quote(form.input['value'], safe='')
             else:
                 a = bc3.find('a', class_='link-mp3')
                 if a:
-                    metadata['mp3'] = get_url(a['href'])
+                    metadata['mp3'] = client.get_url(a['href'])
 
         def add_sections_and_topics(metadata, bc3):
             # Extracting theses two one is quite ugly since there is not clear separation between
@@ -310,6 +191,7 @@ class Presentation(object):
         if not hasattr(self, "_metadata"):
             box_content_3 = self.soup.find('div', class_='box-content-3')
             metadata = {
+                'url': client.get_url("/presentations/" + self.id),
                 'title': get_title(box_content_3),
                 'date' : get_date(box_content_3),
                 'auth' : get_author(box_content_3),
@@ -317,7 +199,7 @@ class Presentation(object):
                 'timecodes': get_timecodes(box_content_3),
                 'slides': get_slides(box_content_3),
                 'video': get_video(box_content_3),
-            }
+                }
             add_sections_and_topics(metadata, box_content_3)
             add_summary_bio_about(metadata, box_content_3)
             add_mp3_if_exist(metadata, box_content_3)
@@ -327,8 +209,7 @@ class Presentation(object):
 
         return self._metadata
 
-
-class OfflinePresentation(object):
+class Downloader(object):
 
     def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
         self.presentation = presentation
@@ -351,7 +232,7 @@ class OfflinePresentation(object):
     def _video_path(self):
         return os.path.join(self.tmp_dir, 'video.avi')
 
-    def create_presentation(self, output_path):
+    def create_presentation(self, output_path=None):
         """ Create the presentation.
 
         The audio track is mixed with the slides. The resulting file is saved as output_path
@@ -360,7 +241,7 @@ class OfflinePresentation(object):
         """
         try:
             audio = self.download_mp3()
-        except DownloadFailedException:
+        except client.DownloadError:
             video = self.download_video()
             audio = self._extractAudio(video)
 
@@ -371,7 +252,7 @@ class OfflinePresentation(object):
         # Create one frame per second using the timecode information
         frame_pattern = self._prepare_frames(png_slides)
         # Now Build the video file
-        output = self._assemble(audio, frame_pattern, output_path)
+        output = self._assemble(audio, frame_pattern, output=output_path)
 
         return output
 
@@ -379,7 +260,7 @@ class OfflinePresentation(object):
     def download_video(self, output_path=None):
         """Downloads the video.
 
-        If self.iq.cache_enabled is True, then the disk cache is used.
+        If self.client.cache_enabled is True, then the disk cache is used.
 
         Args:
             output_path: Where to save the video if not already cached. A
@@ -394,11 +275,11 @@ class OfflinePresentation(object):
         """
         video_url =  self.presentation.metadata['video']
 
-        if self.presentation.iq.cache:
-            video_path = self.presentation.iq.cache.get_path(video_url)
+        if self.presentation.client.cache:
+            video_path = self.presentation.client.cache.get_path(video_url)
             if not video_path:
                 video_path = self.download_video_no_cache(output_path=output_path)
-                self.presentation.iq.cache.put_path(video_url, video_path)
+                self.presentation.client.cache.put_path(video_url, video_path)
         else:
             video_path = self.download_video_no_cache(output_path=output_path)
 
@@ -430,7 +311,7 @@ class OfflinePresentation(object):
                 os.unlink(output_path)
             except OSError:
                 pass
-            raise DownloadFailedException("Failed to download video at %s: rtmpdump exited with %s" % (video_url, e.returncode))
+            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s" % (video_url, e.returncode))
 
         return output_path
 
@@ -445,7 +326,7 @@ class OfflinePresentation(object):
         if not output_dir:
             output_dir = self.tmp_dir
 
-        return self.presentation.iq.download_all(self.presentation.metadata['slides'], output_dir)
+        return self.presentation.client.download_all(self.presentation.metadata['slides'], output_dir)
 
     def download_mp3(self, output_path=None):
         """ Download the audio track.
@@ -461,7 +342,7 @@ class OfflinePresentation(object):
         dir = os.path.dirname(output_path)
         filename = os.path.basename(output_path)
 
-        return self.presentation.iq.download(self.presentation.metadata['mp3'], dir, filename=filename)
+        return self.presentation.client.download(self.presentation.metadata['mp3'], dir, filename=filename)
 
     def _assemble(self, audio, frame_pattern, output=None):
         if not output:
@@ -472,9 +353,9 @@ class OfflinePresentation(object):
             ret = subprocess.call(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
-                    "\tExit code: %s\n"
-                    "\tOutput:\n%s"
-                    % (output, e.returncode, e.output))
+                            "\tExit code: %s\n"
+                            "\tOutput:\n%s"
+                            % (output, e.returncode, e.output))
         return output
 
     def _extractAudio(self, video_path):
@@ -490,7 +371,7 @@ class OfflinePresentation(object):
         return output_path
 
     def _convert_slides(self, swf_slides):
-        swf_render = SwfConverter(swfrender_path=self.swfrender)
+        swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
         return [swf_render.to_png(s) for s in swf_slides]
 
     def _prepare_frames(self, slides):
@@ -505,14 +386,19 @@ class OfflinePresentation(object):
         return os.path.join(self.tmp_dir, "frame-%04d.png")
 
 
-class RightBarPage(object):
+class _RightBarPage(object):
     """A page returned by /rightbar.action
 
     This page lists all available presentations with pagination.
     """
-    def __init__(self, index, iq):
+
+    # Number of presentation entries per page returned by rightbar.action
+    RIGHT_BAR_ENTRIES_PER_PAGES = 8
+
+
+    def __init__(self, client, index):
         self.index = index
-        self.iq = iq
+        self.client = client
 
     @property
     def soup(self):
@@ -524,10 +410,10 @@ class RightBarPage(object):
                 "language": "en",
                 "selectedTab": "PRESENTATION",
                 "startIndex": self.index,
-            }
+                }
             # Do not use iq.fetch to avoid caching since the rightbar is a dynamic page
-            url = get_url("/rightbar.action")
-            with contextlib.closing(self.iq.opener.open(url, urllib.urlencode(params))) as response:
+            url = client.get_url("/rightbar.action")
+            with contextlib.closing(self.client.opener.open(url, urllib.urlencode(params))) as response:
                 if response.getcode() != 200:
                     raise Exception("Fetching rightbar index %s failed" % self.index)
                 content = response.read()
@@ -546,6 +432,9 @@ class RightBarPage(object):
                 # remove session id if present
                 return div.find('a')['href'].rsplit(';', 2)[0]
 
+            def get_url(div):
+                return client.get_url(get_path(div))
+
             def get_desc(div):
                 return div.find('p', class_='image').find_next_sibling('p').get_text(strip=True)
 
@@ -562,63 +451,12 @@ class RightBarPage(object):
 
             return {
                 'id'   : get_id(div),
-                'path' : get_path(div),
+                'url' :  get_url(div),
                 'desc' : get_desc(div),
                 'auth' : get_auth(div),
                 'date' : get_date(div),
                 'title': get_title(div),
-            }
+                }
 
         entries = self.soup.findAll('div', {'class': 'entry'})
         return [create_summary(div) for div in entries]
-
-
-import Image
-
-class SwfConverter(object):
-    """Convert SWF slides into an images
-
-    Require swfrender (from swftools: http://www.swftools.org/)
-    """
-
-    # Currently rely on swftools
-    #
-    # Would be great to have a native python dependency to convert swf into png or jpg.
-    # However it seems that pyswf  isn't flawless. Some graphical elements (like the text!) are lost during
-    # the export.
-
-    def __init__(self, swfrender_path='swfrender'):
-        self.swfrender = swfrender_path
-        self._stdout = None
-        self._stderr = None
-
-    def to_png(self, swf_path, png_path=None):
-        """ Convert a slide into a PNG image.
-
-        OSError is raised if swfrender is not available.
-        An exception is raised if image cannot be created.
-        """
-        if not png_path:
-            png_path = swf_path.replace(".swf", ".png")
-
-        try:
-            cmd = [self.swfrender, swf_path, '-o', png_path]
-            subprocess.check_output(cmd)
-        except subprocess.CalledProcessError as e:
-            raise Exception(u"Failed to convert SWF file %s.\n"
-                            u"\tExit status: %s.\n\tOutput:\n%s" % (swf_path, e.returncode, e.output))
-
-        return png_path
-
-    def to_jpeg(self, swf_path, jpg_path):
-        """ Convert a slide into a PNG image.
-
-        OSError is raised if swfrender is not available.
-        An exception is raised if image cannot be created.
-        """
-        png_path = tempfile.mktemp(suffix=".png")
-        self.to_png(swf_path, png_path)
-        Image.open(png_path).convert('RGB').save(jpg_path, 'jpeg')
-        os.remove(png_path)
-        return jpg_path
-
