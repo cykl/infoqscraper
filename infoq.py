@@ -5,7 +5,6 @@
 Visit http;//www.infoq.com
 
 """
-import cache
 
 __version__ = "0.0.1-dev"
 __license__ = """
@@ -37,6 +36,8 @@ __contributors__ = [
 ]
 
 import bs4
+import cache
+import contextlib
 import cookielib
 import base64
 import datetime
@@ -94,9 +95,9 @@ class InfoQ(object):
             'fromHeader': 'true',
             'submit-login': '',
         }
-        response = self.opener.open(url, urllib.urlencode(params))
-        if not "loginAction_ok.jsp" in response.url:
-            raise AuthenticationFailedException("Login failed")
+        with contextlib.closing(self.opener.open(url, urllib.urlencode(params))) as response:
+            if not "loginAction_ok.jsp" in response.url:
+                raise AuthenticationFailedException("Login failed")
 
         self.authenticated = True
 
@@ -130,8 +131,9 @@ class InfoQ(object):
             DownloadFailedException is raised if the resource cannot be fetched.
         """
         try:
-            response = self.opener.open(url)
-            return response.read()
+
+            with contextlib.closing(self.opener.open(url)) as response:
+                return response.read()
         except urllib2.URLError as e:
             raise DownloadFailedException("Failed to get %s.: %s" % (url, e))
 
@@ -524,12 +526,14 @@ class RightBarPage(object):
                 "startIndex": self.index,
             }
             # Do not use iq.fetch to avoid caching since the rightbar is a dynamic page
-            response = self.iq.opener.open(get_url("/rightbar.action"), urllib.urlencode(params))
-            if response.getcode() != 200:
-                raise Exception("Fetching rightbar index %s failed" % self.index)
-            content = response.read()
+            url = get_url("/rightbar.action")
+            with contextlib.closing(self.iq.opener.open(url, urllib.urlencode(params))) as response:
+                if response.getcode() != 200:
+                    raise Exception("Fetching rightbar index %s failed" % self.index)
+                content = response.read()
 
-            self._soup = bs4.BeautifulSoup(content)
+                self._soup = bs4.BeautifulSoup(content)
+
             return self._soup
 
     def summaries(self):
