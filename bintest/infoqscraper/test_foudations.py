@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2012, Clément MATHIEU
@@ -22,31 +21,31 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import bintest
+import os
+import subprocess
 
-from distutils.core import setup
-setup(
-    version="0.0.2a1",
-    name="infoqscraper",
+usage_prefix = "usage: infoqscraper ["
 
-    description="A Web scraper for www.InfoQ.com",
-    long_description="""
-InfoQ hosts a lot of great presentations, unfortunately it is not possible to watch them outside of the browser.
-The video cannot simply be downloaded because the audio stream and the slide stream are not in the same media.
+class TestTestHelpers(bintest.infoqscraper.TestInfoqscraper):
 
-infoqscraper allows to scrap the website, download the required resources and build a movie from them.
-""",
+    def test_infoqscraper_path(self):
+        self.assertTrue(os.path.exists(self.infoqscraper_path))
 
-    author="Clément MATHIEU",
-    author_email="clement@unportant.info",
-    url="https://github.com/cykl/infoqmedia",
-    license="License :: OSI Approved :: BSD License",
-    classifiers=[
-      "Programming Language :: Python",
-      "Programming Language :: Python :: 2",
-      "Topic :: Internet :: WWW/HTTP",
-    ],
+class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
-    packages=["infoqscraper"],
-    scripts=["bin/infoqscraper"]
-)
+    def test_no_arg(self):
+        cmd = self.build_cmd([])
+        try:
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            self.fail("Exception expected")
+        except subprocess.CalledProcessError as e:
+            self.assertEqual(e.returncode, 2)
+            print e.output
+            self.assertTrue(e.output.startswith(usage_prefix))
+
+    def test_help(self):
+        cmd =  self.build_cmd(['--help'])
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertTrue(output.startswith(usage_prefix))
 

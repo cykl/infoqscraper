@@ -397,8 +397,8 @@ class _RightBarPage(object):
 
 
     def __init__(self, client, index):
-        self.index = index
         self.client = client
+        self.index = index
 
     @property
     def soup(self):
@@ -409,7 +409,7 @@ class _RightBarPage(object):
             params = {
                 "language": "en",
                 "selectedTab": "PRESENTATION",
-                "startIndex": self.index,
+                "startIndex": self.index * _RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES,
                 }
             # Do not use iq.fetch to avoid caching since the rightbar is a dynamic page
             url = client.get_url("/rightbar.action")
