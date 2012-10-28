@@ -59,8 +59,11 @@ class InfoQ(object):
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
         self.cache = None
         if cache_enabled:
-            self.cache = cache.XDGCache()
+            self.enable_cache()
 
+    def enable_cache(self):
+        if not self.cache:
+            self.cache = cache.XDGCache()
 
     def login(self, username, password):
         """ Log in.

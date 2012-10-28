@@ -89,3 +89,12 @@ class TestCache(unittest2.TestCase):
         self.assertIsNone(self.cache.get_content(url))
         self.cache.put_content(url, content)
         self.assertEqual(self.cache.get_content(url), content)
+
+    def test_size(self):
+        url = "http://example.com/foo"
+        content = "x" * 1026
+        self.cache.put_content(url, content)
+        size = self.cache.size
+        self.assertEqual(size, 1026)
+
+

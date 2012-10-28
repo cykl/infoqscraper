@@ -153,3 +153,15 @@ class XDGCache(object):
             OSError: If some file cannot be delete
         """
         shutil.rmtree(self.dir)
+
+    @property
+    def size(self):
+        """Returns the size of the cache in bytes."""
+        total_size = 0
+        for dir_path, dir_names, filenames in os.walk(self.dir):
+            for f in filenames:
+                fp = os.path.join(dir_path, f)
+                total_size += os.path.getsize(fp)
+        return total_size
+
+        pass

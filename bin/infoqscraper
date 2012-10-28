@@ -37,6 +37,8 @@ app_name = "infoqscraper"
 class ArgumentError(Exception):
     pass
 
+class CommandError(Exception):
+    pass
 
 class Module(object):
     """Regroups  a set of commands by topic."""
@@ -76,8 +78,84 @@ class Command(object):
         raise NotImplementedError
 
 
+class CacheModule(Module):
+    """All commands related to the disk cache go here.
+
+    New commands must be registered into the commands attribute.
+
+    Attributes:
+        commands: A dictionary of available commands. Keys are command names. Value are commands.
+    """
+    name = "cache"
+
+    def __init__(self):
+        self.commands = {
+            CacheModule.Size.name: CacheModule.Size,
+            CacheModule.Clear.name: CacheModule.Clear,
+        }
+
+    def main(self, infoq_client, args):
+        parser = argparse.ArgumentParser(prog="%s %s" % (app_name, self.name))
+        parser.add_argument('command', choices = self.commands.keys())
+        parser.add_argument('command_args', nargs=argparse.REMAINDER)
+        args = parser.parse_args(args=args)
+
+        try:
+            command_class = self.commands[args.command]
+        except KeyError:
+            raise ArgumentError("%s is not a %s %s command" % (args.command, app_name, self.name))
+
+        command = command_class()
+        return command.main(infoq_client, args.command_args)
+
+
+    class Clear(Command):
+        """Clears the cache."""
+        name = "clear"
+
+        def main(self, infoq_client, args):
+            parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, CacheModule.name, CacheModule.Clear.name))
+            args = parser.parse_args(args=args)
+
+            infoq_client.enable_cache()
+            try:
+                infoq_client.cache.clear()
+            except OSError as e:
+                raise CommandError("Failed to clean the disk cache: %s" % e, 3)
+
+            return 0
+
+    class Size(Command):
+        """Gives information about the disk cache"""
+        name = "size"
+
+        def main(self, infoq_client, args):
+            parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, CacheModule.name, CacheModule.Size.name))
+            args = parser.parse_args(args=args)
+
+            infoq_client.enable_cache()
+            size = infoq_client.cache.size
+            human_size = self.__humanize(size, 2)
+            print "%s" % human_size
+
+        def __humanize(self, bytes, precision=2):
+            suffixes = (
+                (1<<50L, 'PB'),
+                (1<<40L, 'TB'),
+                (1<<30L, 'GB'),
+                (1<<20L, 'MB'),
+                (1<<10L, 'kB'),
+                (1, 'bytes')
+            )
+            if bytes == 1:
+                return '1 byte'
+            for factor, suffix in suffixes:
+                if bytes >= factor:
+                    break
+            return '%.*f %s' % (precision, bytes / factor, suffix)
+
 class PresentationModule(Module):
-    """All commands related to presentations goes here.
+    """All commands related to presentations go here.
 
     New commands must be registered into the commands attribute.
 
@@ -241,7 +319,8 @@ def warn(str, code=1):
 
 def main():
     modules = {
-        "presentation": PresentationModule,
+        PresentationModule.name: PresentationModule,
+        CacheModule.name: CacheModule
         }
 
     parser = argparse.ArgumentParser(prog="infoqscraper")
@@ -260,7 +339,7 @@ def main():
     module = module_class()
     try:
         module.main(infoq_client, args.module_args)
-    except ArgumentError as e:
+    except (ArgumentError, CommandError) as e:
         return warn(e)
 
 if __name__ == "__main__":
