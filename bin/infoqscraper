@@ -322,7 +322,7 @@ def main():
     modules = {
         PresentationModule.name: PresentationModule,
         CacheModule.name: CacheModule
-        }
+    }
 
     parser = argparse.ArgumentParser(prog="infoqscraper")
     parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
