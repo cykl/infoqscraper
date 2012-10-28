@@ -47,6 +47,11 @@ infoqscraper allows to scrap the website, download the required resources and bu
     ],
 
     packages=["infoqscraper"],
-    scripts=["bin/infoqscraper"]
+    scripts=["bin/infoqscraper"],
+    install_requires=[
+        "BeautifulSoup4",
+        "html5lib",
+        "PIL",
+    ],
 )
 
