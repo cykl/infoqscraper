@@ -31,6 +31,7 @@ from infoqscraper import client
 from infoqscraper import utils
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import urllib
@@ -216,6 +217,12 @@ class Downloader(object):
         self.ffmpeg = ffmpeg
         self.rtmpdump = rtmpdump
         self.swfrender = swfrender
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        shutil.rmtree(self.tmp_dir)
 
     @property
     def tmp_dir(self):

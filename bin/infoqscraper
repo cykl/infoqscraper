@@ -280,16 +280,17 @@ class PresentationModule(Module):
             except client.DownloadError as e:
                 return warn("Presentation %s not found. Please check your id or url" % id, 2)
 
-            builder = presentation.Downloader(pres,
-                ffmpeg=args.ffmpeg,
-                rtmpdump=args.rtmpdump,
-                swfrender=args.swfrender
-            )
+            kwargs = {
+                "ffmpeg"   :args.ffmpeg,
+                "rtmpdump" :args.rtmpdump,
+                "swfrender":args.swfrender,
+            }
 
-            try:
-                builder.create_presentation(output_path=output)
-            except client.DownloadError as e:
-                return warn("Failed to create presentation %s: %s" % (output, e), 2)
+            with presentation.Downloader(pres, **kwargs) as builder:
+                try:
+                    builder.create_presentation(output_path=output)
+                except client.DownloadError as e:
+                    return warn("Failed to create presentation %s: %s" % (output, e), 2)
 
         def __check_dependencies(self, dependencies):
             for cmd in dependencies:
