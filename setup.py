@@ -38,7 +38,7 @@ infoqscraper allows to scrap the website, download the required resources and bu
 
     author="Clément MATHIEU",
     author_email="clement@unportant.info",
-    url="https://github.com/cykl/infoqmedia",
+    url="https://github.com/cykl/infoqscraper",
     license="License :: OSI Approved :: BSD License",
     classifiers=[
       "Programming Language :: Python",
