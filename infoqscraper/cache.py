@@ -48,7 +48,7 @@ class XDGCache(object):
     def _find_dir(self):
         home = os.path.expanduser("~")
         xdg_cache_home = os.environ.get("XDG_CACHE_HOME", os.path.join(home, ".cache"))
-        return os.path.join(xdg_cache_home, "infoqmedia", "resources")
+        return os.path.join(xdg_cache_home, "infoqscraper", "resources")
 
     def _url_to_path(self, url):
         return os.path.join(self.dir, url)
