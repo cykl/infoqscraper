@@ -25,7 +25,7 @@
 
 from distutils.core import setup
 setup(
-    version="0.0.2a1",
+    version="0.0.2",
     name="infoqscraper",
 
     description="A Web scraper for www.InfoQ.com",
