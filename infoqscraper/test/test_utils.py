@@ -44,8 +44,7 @@ class TestSwfConverter(unittest2.TestCase):
         converter = utils.SwfConverter()
 
         # Fetch a slide
-        summ = presentation.get_summaries(self.iq).next()
-        pres = presentation.Presentation(self.iq, summ['id'])
+        pres = presentation.Presentation(self.iq, "Java-GC-Azul-C4")
         swf_path = self.iq.download(pres.metadata['slides'][0], self.tmp_dir)
 
         # SWF -> PNG

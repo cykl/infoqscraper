@@ -76,8 +76,8 @@ class TestPresentation(unittest2.TestCase):
 
     def assertValidPresentationMetadata(self, m):
         # Audio and Pdf are not always available
-        self.assertGreaterEqual(len(m), 13)
-        self.assertLessEqual(len(m), 15)
+        self.assertGreaterEqual(len(m), 14)
+        self.assertLessEqual(len(m), 16)
 
         self.assertIsInstance(m['title'], basestring)
 
@@ -112,8 +112,10 @@ class TestPresentation(unittest2.TestCase):
             self.assertTrue(s.startswith("http://"))
         self.assertEqual(len(m['timecodes']), len(m['slides']) + 1)
 
-        self.assertIsInstance(m['video'], basestring)
-        self.assertTrue(m['video'].startswith("rtmpe://"))
+        self.assertIsInstance(m['video_url'], basestring)
+        self.assertTrue(m['video_url'].startswith("rtmpe://"))
+        self.assertIsInstance(m['video_path'], basestring)
+        self.assertTrue(m['video_path'].startswith("mp4:") or m['video_path'].startswith("flv:"))
 
         if 'mp3' in m:
             self.assertIsInstance(m['mp3'], basestring)
@@ -148,8 +150,10 @@ class TestPresentation(unittest2.TestCase):
         self.assertEqual(p.metadata['slides'],
             [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
              range(1, 49) + range(50, 51) + range(52, 53) + range(55, 65) + range(66, 72)])
-        self.assertEqual(p.metadata['video'],
-            "rtmpe://video.infoq.com/cfx/st/presentations/12-jun-everythingyoueverwanted.mp4")
+        self.assertEqual(p.metadata['video_url'],
+            "rtmpe://video.infoq.com/cfx/st/")
+	self.assertEqual(p.metadata['video_path'],
+	    "mp4:presentations/12-jun-everythingyoueverwanted.mp4")
         self.assertEqual(p.metadata['pdf'],
             "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
         self.assertEqual(p.metadata['mp3'],
@@ -159,6 +163,7 @@ class TestPresentation(unittest2.TestCase):
     def test_presentation_clojure_expression_problem(self):
         p = presentation.Presentation(self.iq, "Clojure-Expression-Problem")
         self.assertValidPresentationMetadata(p.metadata)
+        self.assertTrue(p.metadata['video_path'].startswith("flv:"))
 
     @test.use_cache
     def test_presentation_latest(self):

@@ -117,7 +117,16 @@ class Presentation(object):
                 mo = re.search('var jsclassref=\'(.*)\';', script.get_text())
                 if mo:
                     b64 = mo.group(1)
-                    return "rtmpe://video.infoq.com/cfx/st/%s" % base64.b64decode(b64)
+                    path = base64.b64decode(b64)
+                    # Older presentations use flv and the video path does not contain
+                    # the extension. Newer presentations use mp4 and include the extension.
+		    if path.endswith(".mp4"):
+		    	return "mp4:%s" % path
+		    elif path.endswith(".flv"):
+		    	return "flv:%s" % path[:-4]
+		    else:
+		        raise Exception("Unsupported video type: %s" % path)
+
 
         def add_pdf_if_exist(metadata, bc3):
             # The markup is not the same if authenticated or not
@@ -199,7 +208,8 @@ class Presentation(object):
                 'duration': get_duration(box_content_3),
                 'timecodes': get_timecodes(box_content_3),
                 'slides': get_slides(box_content_3),
-                'video': get_video(box_content_3),
+                'video_url': "rtmpe://video.infoq.com/cfx/st/",
+                'video_path': get_video(box_content_3),
                 }
             add_sections_and_topics(metadata, box_content_3)
             add_summary_bio_about(metadata, box_content_3)
@@ -252,12 +262,12 @@ class Downloader(object):
             video = self.download_video()
             audio = self._extractAudio(video)
 
-        swf_slides = self.download_slides()
+        raw_slides = self.download_slides()
 
-        # Convert slides into PNG since ffmpeg does not support SWF
-        png_slides = self._convert_slides(swf_slides)
+        # Convert slides into JPG since ffmpeg does not support SWF
+        jpg_slides = self._convert_slides(raw_slides)
         # Create one frame per second using the timecode information
-        frame_pattern = self._prepare_frames(png_slides)
+        frame_pattern = self._prepare_frames(jpg_slides)
         # Now Build the video file
         output = self._assemble(audio, frame_pattern, output=output_path)
 
@@ -280,13 +290,13 @@ class Downloader(object):
         Raises:
             DownloadFailedException: If the video cannot be downloaded.
         """
-        video_url =  self.presentation.metadata['video']
+        rvideo_path =  self.presentation.metadata['video_path']
 
         if self.presentation.client.cache:
-            video_path = self.presentation.client.cache.get_path(video_url)
+            video_path = self.presentation.client.cache.get_path(rvideo_path)
             if not video_path:
                 video_path = self.download_video_no_cache(output_path=output_path)
-                self.presentation.client.cache.put_path(video_url, video_path)
+                self.presentation.client.cache.put_path(rvideo_path, video_path)
         else:
             video_path = self.download_video_no_cache(output_path=output_path)
 
@@ -305,13 +315,14 @@ class Downloader(object):
         Raises:
             DownloadFailedException: If the video cannot be downloaded.
         """
-        video_url =  self.presentation.metadata['video']
+        video_url  = self.presentation.metadata['video_url']
+        video_path = self.presentation.metadata['video_path']
 
         if not output_path:
             output_path = self._video_path
 
         try:
-            cmd = [self.rtmpdump, '-q', '-r', video_url, "-o", output_path]
+            cmd = [self.rtmpdump, '-q', '-r', video_url, '-y', video_path, "-o", output_path]
             subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             try:
@@ -377,20 +388,28 @@ class Downloader(object):
                             % (video_path, output_path, e.returncode, e.output))
         return output_path
 
-    def _convert_slides(self, swf_slides):
+    def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
-        return [swf_render.to_png(s) for s in swf_slides]
+	def convert(slide):
+	    if slide.endswith("swf"):
+		return swf_render.to_jpeg(slide)
+	    elif slide.endswith("jpg"):
+		return slide
+	    else:
+		raise Exception("Unsupported slide type: %s" % slide)
 
-    def _prepare_frames(self, slides):
+        return [convert(s) for s in slides]
+
+    def _prepare_frames(self, slides, ext="jpg"):
         timecodes = self.presentation.metadata['timecodes']
 
         frame = 0
         for slide_index in xrange(len(slides)):
             for remaining  in xrange(timecodes[slide_index], timecodes[slide_index+1]):
-                os.link(slides[slide_index], os.path.join(self.tmp_dir, "frame-{0:04d}.png").format(frame))
+                os.link(slides[slide_index], os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame))
                 frame += 1
 
-        return os.path.join(self.tmp_dir, "frame-%04d.png")
+        return os.path.join(self.tmp_dir, "frame-%04d." +  ext)
 
 
 class _RightBarPage(object):

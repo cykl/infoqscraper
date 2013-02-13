@@ -63,12 +63,15 @@ class SwfConverter(object):
 
         return png_path
 
-    def to_jpeg(self, swf_path, jpg_path):
+    def to_jpeg(self, swf_path, jpg_path=None):
         """ Convert a slide into a PNG image.
 
         OSError is raised if swfrender is not available.
         An exception is raised if image cannot be created.
         """
+        if not jpg_path:
+            jpg_path = swf_path.replace(".swf", ".jpg")
+
         png_path = tempfile.mktemp(suffix=".png")
         self.to_png(swf_path, png_path)
         Image.open(png_path).convert('RGB').save(jpg_path, 'jpeg')
