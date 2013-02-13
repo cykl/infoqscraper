@@ -79,7 +79,7 @@ class Presentation(object):
     def _fetch(self):
         """Download the page and create the soup"""
         url = client.get_url("/presentations/" + self.id)
-        content = self.client.fetch(url)
+        content = self.client.fetch(url).decode('utf-8')
         return bs4.BeautifulSoup(content, "html5lib")
 
     @property
@@ -423,7 +423,7 @@ class _RightBarPage(object):
             with contextlib.closing(self.client.opener.open(url, urllib.urlencode(params))) as response:
                 if response.getcode() != 200:
                     raise Exception("Fetching rightbar index %s failed" % self.index)
-                content = response.read()
+                content = response.read().decode('utf-8')
 
                 self._soup = bs4.BeautifulSoup(content)
 
