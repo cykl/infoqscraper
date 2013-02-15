@@ -120,12 +120,12 @@ class Presentation(object):
                     path = base64.b64decode(b64)
                     # Older presentations use flv and the video path does not contain
                     # the extension. Newer presentations use mp4 and include the extension.
-		    if path.endswith(".mp4"):
-		    	return "mp4:%s" % path
-		    elif path.endswith(".flv"):
-		    	return "flv:%s" % path[:-4]
-		    else:
-		        raise Exception("Unsupported video type: %s" % path)
+                    if path.endswith(".mp4"):
+                        return "mp4:%s" % path
+                    elif path.endswith(".flv"):
+                        return "flv:%s" % path[:-4]
+                    else:
+                        raise Exception("Unsupported video type: %s" % path)
 
 
         def add_pdf_if_exist(metadata, bc3):
@@ -390,13 +390,13 @@ class Downloader(object):
 
     def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
-	def convert(slide):
-	    if slide.endswith("swf"):
-		return swf_render.to_jpeg(slide)
-	    elif slide.endswith("jpg"):
-		return slide
-	    else:
-		raise Exception("Unsupported slide type: %s" % slide)
+        def convert(slide):
+            if slide.endswith("swf"):
+                return swf_render.to_jpeg(slide)
+            elif slide.endswith("jpg"):
+                return slide
+            else:
+                raise Exception("Unsupported slide type: %s" % slide)
 
         return [convert(s) for s in slides]
 
