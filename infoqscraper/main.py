@@ -22,14 +22,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import argparse
-import subprocess
-from infoqscraper import client
-from infoqscraper import presentation
 import os
+import pkg_resources
 import re
+import subprocess
 import sys
 
+from infoqscraper import client
+from infoqscraper import presentation
+
 app_name = "infoqscraper"
+try:
+	app_version = pkg_resources.require(app_name)[0].version
+except pkg_resources.DistributionNotFound:
+	app_version = "unknown-version"
+
 
 
 
@@ -332,6 +339,8 @@ def main():
 
     parser = argparse.ArgumentParser(prog="infoqscraper")
     parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
+    parser.add_argument('-V', '--version'  , action="version",    help="Display version",
+                                             version="%s %s" % (app_name, app_version))
     parser.add_argument('module', choices=modules.keys())
     parser.add_argument('module_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
