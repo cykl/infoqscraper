@@ -14,11 +14,19 @@ the presenter but you don't get the slide.
 
 The project is split in two part; a reusable library and a command line interface.
 
+# Install
+
+Infoqscraper releases can be installed using `pip` and PyPI.
+
+        pip install [--user] infoqscraper
+
+The `infoqscraper` executable will now be available in your path.
+
 # CLI usage
 
 Overview:
 
-        ./infoqscraper [global options] module [module options] command [command options]
+        infoqscraper [global options] module [module options] command [command options]
 
 ## presentation module
 
@@ -28,11 +36,11 @@ This module allows to list, search and download presentation from the website
 
 The following command displays the 20 latest presentations.
 
-        ./infoqscraper presentation list -n 20
+        infoqscraper presentation list -n 20
 
 You can also search for a specific topic:
 
-        ./infoqscraper presentation list -p agile
+        infoqscraper presentation list -p agile
 
 By default at most 10 hits are returned and only the latest 80 entries are fetched from the website.
 The `-n` and `-m` options can be used to display more hits or to fetch more entries.
@@ -44,7 +52,7 @@ or the website could be a better idea.
 The following command automatically downloads the presentation and creates a movie file
 named `Distributed-Systems-with-ZeroMQ-and-gevent.avi`  in the current directory.
 
-        ./infoqscraper presentation download Distributed-Systems-with-ZeroMQ-and-gevent
+        infoqscraper presentation download Distributed-Systems-with-ZeroMQ-and-gevent
 
 
 ## cache module
@@ -57,11 +65,11 @@ the `-c` global option. The resources are stored in the `XDG_CACHE_DIR/infoqscra
 
 The following command show the size of the cache:
 
-        ./infoqscraper cache size
+        infoqscraper cache size
 
 And the clear command allows to wipe the cache
 
-        ./infoqscraper cache clear
+        infoqscraper cache clear
 
 
 # Dependencies
@@ -73,7 +81,7 @@ And the clear command allows to wipe the cache
 3. rtmpdump
 
 If theses tools are not in the PATH, their location can be specified.
-Use `./infoqscraper presentation download -h` to learn more.
+Use `infoqscraper presentation download -h` to learn more.
 
 The following python packages are required:
 
