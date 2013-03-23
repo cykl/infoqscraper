@@ -1,0 +1,5 @@
+0.0.3:
+  - Fix support of Arch Linux (and all distributions linking python to python3
+    rather than to python2)
+  - Add --version option
+
