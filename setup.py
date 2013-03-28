@@ -52,6 +52,7 @@ infoqscraper allows to scrap the website, download the required resources and bu
         "BeautifulSoup4",
         "html5lib",
         "PIL",
+	"argparse",
     ],
 )
 
