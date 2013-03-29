@@ -323,7 +323,7 @@ class Downloader(object):
 
         try:
             cmd = [self.rtmpdump, '-q', '-r', video_url, '-y', video_path, "-o", output_path]
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             try:
                 os.unlink(output_path)
@@ -380,7 +380,7 @@ class Downloader(object):
         output_path = self._audio_path
         try:
             cmd = [self.ffmpeg, "-v", "error", '-i', video_path, '-vn', '-acodec', 'libvorbis', output_path]
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to extract audio track from %s to %s.\n"
                             "\tExit code: %s\n"

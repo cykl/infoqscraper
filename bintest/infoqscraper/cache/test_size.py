@@ -25,6 +25,8 @@ import bintest
 import subprocess
 import re
 
+from infoqscraper import utils
+
 usage_prefix = "usage: infoqscraper cache size"
 
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
@@ -34,20 +36,20 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_help(self):
         cmd =  self.build_size_cmd(['--help'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_size(self):
         # TODO: Find a better test
         # We could use du -sh then compare its output to our.
         cmd =  self.build_size_cmd([])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).strip()
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT).strip()
         self.assertIsNotNone(re.match('\d{1,3}\.\d{2} \w{2,5}', output))
 
     def test_extra_arg(self):
         cmd = self.build_size_cmd(["extra_args"])
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)

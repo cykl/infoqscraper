@@ -24,6 +24,7 @@
 import bintest
 from infoqscraper import client
 from infoqscraper import presentation
+from infoqscraper import utils
 import subprocess
 
 
@@ -36,22 +37,22 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_help(self):
         cmd =  self.build_list_cmd(['--help'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_no_arg(self):
         cmd = self.build_list_cmd([])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertEqual(output.count("Id: "), 10)
 
     def test_max_hit(self):
         cmd = self.build_list_cmd(['-n', '1'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertEqual(output.count("Id: "), 1)
 
     def test_max_pages(self):
         cmd = self.build_list_cmd(['-m', '1'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertEqual(output.count("Id: "), presentation._RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES)
 
     def test_pattern(self):
@@ -59,19 +60,19 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
         summary = presentation.get_summaries(infoq_client).next()
 
         cmd = self.build_list_cmd(['-p', summary['title']])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertEqual(output.count("Id: "), 1)
 
     def test_short_output(self):
         cmd = self.build_list_cmd(['-s'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertEqual(len(output.strip().split("\n")), 10)
 
     def test_duplicates(self):
         # Try to spot bugs in the summary fetcher.
         # Sometimes the same summary is returned several times
         cmd = self.build_list_cmd(['-n', '30', '-s'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).strip()
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT).strip()
         ids = output.split('\n')
         id_set = set(ids)
         self.assertEqual(len(ids), len(id_set))

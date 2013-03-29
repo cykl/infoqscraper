@@ -28,6 +28,9 @@ import shutil
 import subprocess
 import tempfile
 
+from infoqscraper import utils
+
+
 usage_prefix = "usage: infoqscraper presentation"
 
 # Shorter is better to speed up the test suite.
@@ -40,13 +43,13 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_help(self):
         cmd =  self.build_download_cmd(['--help'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_no_arg(self):
         cmd = self.build_download_cmd([])
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
@@ -56,14 +59,14 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
         tmp_dir = tempfile.mkdtemp()
         output_path = os.path.join(tmp_dir, "output.avi")
         cmd =  self.build_download_cmd([short_presentation_id, '-o', output_path])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(os.path.exists(output_path))
         shutil.rmtree(tmp_dir)
 
     def assert_bad_command(self, args):
         cmd = self.build_download_cmd(args)
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
@@ -83,7 +86,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             # TODO: Need to find a way to create an alias on win32
             return
 
-        ffmpeg_path = subprocess.check_output(["which", "ffmpeg"]).strip()
+        ffmpeg_path = utils.check_output(["which", "ffmpeg"]).strip()
         tmp_dir = tempfile.mkdtemp()
         try:
             alias_path = os.path.join(tmp_dir, "ffmpeg")
@@ -92,7 +95,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
             output_path = os.path.join(tmp_dir, "output.avi")
             cmd =  self.build_download_cmd([short_presentation_id, '-o', output_path])
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.assertTrue(os.path.exists(output_path))
         finally:
             shutil.rmtree(tmp_dir)
