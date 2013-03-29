@@ -30,7 +30,7 @@ import subprocess
 import tempfile
 
 if sys.hexversion >= 0x02070000:
-	check_output = sys.subprocess.check_output
+	check_output = subprocess.check_output
 else:
 	def _check_output_backport(*popenargs, **kwargs):
 		r"""Run command with arguments and return its output as a byte string.
