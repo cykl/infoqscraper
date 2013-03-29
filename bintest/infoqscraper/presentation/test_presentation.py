@@ -24,6 +24,8 @@
 import subprocess
 import bintest
 
+from infoqscraper import utils
+
 usage_prefix = "usage: infoqscraper presentation"
 
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
@@ -34,7 +36,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
     def test_no_arg(self):
         cmd = self.build_presentation_cmd([])
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
@@ -43,6 +45,6 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_help(self):
         cmd =  self.build_presentation_cmd(['--help'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 

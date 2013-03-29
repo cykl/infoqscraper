@@ -23,6 +23,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import bintest
 from infoqscraper import client
+from infoqscraper import utils
 import os
 import shutil
 import subprocess
@@ -38,7 +39,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_help(self):
         cmd =  self.build_clear_cmd(['--help'])
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_clear(self):
@@ -53,7 +54,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
         try:
             cmd = self.build_clear_cmd([])
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.assertFalse(os.path.exists(backup_dir))
             # Now restore the cache dir
             shutil.copytree(tmp_dir, backup_dir)
@@ -63,7 +64,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
     def test_extra_arg(self):
         cmd = self.build_clear_cmd(["extra_args"])
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
