@@ -13,7 +13,7 @@ the presenter but you don't get the slide.
 * build a movie including the slides and the audio track from the resources
 
 The project is split in two part; a reusable library and a command line interface. 
-Only Python 2 is currently supported since PIL is not yet available for Python 3.
+Only Python 2.6 or later is currently supported since PIL is not yet available for Python 3.
 
 # Install
 
