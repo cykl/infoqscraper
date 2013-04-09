@@ -44,7 +44,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
         # We could use du -sh then compare its output to our.
         cmd =  self.build_size_cmd([])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT).strip()
-        self.assertIsNotNone(re.match('\d{1,3}\.\d{2} \w{2,5}', output))
+        self.assertIsNotNone(re.match('\d{1,4}\.\d{2} \w{2,5}', output))
 
     def test_extra_arg(self):
         cmd = self.build_size_cmd(["extra_args"])
