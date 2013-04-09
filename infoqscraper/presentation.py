@@ -27,6 +27,7 @@ import base64
 import bs4
 import contextlib
 import datetime
+import errno
 from infoqscraper import client
 from infoqscraper import utils
 import os
@@ -405,8 +406,20 @@ class Downloader(object):
 
         frame = 0
         for slide_index in xrange(len(slides)):
+            src = slides[slide_index]
             for remaining  in xrange(timecodes[slide_index], timecodes[slide_index+1]):
-                os.link(slides[slide_index], os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame))
+                dst = os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame)
+                try:
+                    os.link(src, dst)
+                except OSError as e:
+                    if e.errno == errno.EMLINK:
+                        # Create a new reference file when the upper limit is reached
+                        # (previous to Linux 3.7, btrfs had a very low limit)
+                    	shutil.copyfile(src, dst)
+                    	src = dst
+                    else:
+                        raise e
+                    
                 frame += 1
 
         return os.path.join(self.tmp_dir, "frame-%04d." +  ext)
