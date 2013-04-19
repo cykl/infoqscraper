@@ -94,6 +94,34 @@ To install them, you can run the following command:
 
         pip install -r requirements.txt
 
+# Compatibility
+
+`infoqscraper` is known to work on:
+
+  - Arch Linux
+  - Fedora 17, 18
+  - Ubuntu 12.04.2 LTS
+  
+`ffmpeg` versions from 0.7 to 1.2 are supported. Users of Debian Squeeze or
+Ubuntu 10.04 LTS must use a newer `ffmpeg` release than the one provided by
+their distro. `ffmpeg` 0.5 is too old to be supported (help wanted).
+
+## Arch linux
+
+Packages `python2`, `swftools` and `ffmpeg` must be installed. 
+
+`rtmpdump` is not available and must be installed manually.
+
+## Ubuntu 12.04 LTS (and later)
+
+Packages `ffmpeg`, `rtmpdump` and `ubuntu libavcodec-extra-53` must be installed.
+
+`swftools` is not available and must installed manually.
+
+## Fedora
+
+Packages `ffmpeg`, `swftools` and `rtmpdump` from rpmfusion must be installed.
+
 # Help
 
 Feel free to contact me if you have any question or feature request.

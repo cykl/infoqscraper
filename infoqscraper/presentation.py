@@ -260,8 +260,7 @@ class Downloader(object):
         try:
             audio = self.download_mp3()
         except client.DownloadError:
-            video = self.download_video()
-            audio = self._extractAudio(video)
+            audio = self.download_video()
 
         raw_slides = self.download_slides()
 
@@ -368,7 +367,22 @@ class Downloader(object):
             output = os.path.join(self.tmp_dir, "output.avi")
 
         try:
-            cmd = [self.ffmpeg, "-v", "error", "-f", "image2", "-r", "1", "-i", frame_pattern, "-i", audio, output]
+            # Try to be compatible as much as possible with old ffmpeg releases (>= 0.7)
+            #   - Do not use new syntax options
+            #   - Do not use libx264, not available on old Ubuntu/Debian
+            #   - Do not use -threads auto, not available on 0.8.*
+            #   - Old releases are very picky regarding arguments position
+            #
+            # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
+            # scaling issues with image2.
+            cmd = [
+                    self.ffmpeg, "-v", "0",
+                    "-i", audio, 
+                    "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
+                    "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
+                    "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
+                    output
+                ]
             ret = subprocess.call(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
@@ -376,18 +390,6 @@ class Downloader(object):
                             "\tOutput:\n%s"
                             % (output, e.returncode, e.output))
         return output
-
-    def _extractAudio(self, video_path):
-        output_path = self._audio_path
-        try:
-            cmd = [self.ffmpeg, "-v", "error", '-i', video_path, '-vn', '-acodec', 'libvorbis', output_path]
-            utils.check_output(cmd, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            raise Exception("Failed to extract audio track from %s to %s.\n"
-                            "\tExit code: %s\n"
-                            "\tOutput:\n%s"
-                            % (video_path, output_path, e.returncode, e.output))
-        return output_path
 
     def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
