@@ -114,7 +114,7 @@ Packages `python2`, `swftools` and `ffmpeg` must be installed.
 
 ## Ubuntu 12.04 LTS (and later)
 
-Packages `ffmpeg`, `rtmpdump` and `ubuntu libavcodec-extra-53` must be installed.
+Packages `ffmpeg`, `rtmpdump` and `libavcodec-extra-53` must be installed.
 
 `swftools` is not available and must installed manually.
 
