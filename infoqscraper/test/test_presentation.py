@@ -34,7 +34,7 @@ class TestSummaries(unittest2.TestCase):
 
     def assert_valid_summary(self, summary):
         self.assertIsInstance(summary['id'], basestring)
-        self.assertGreater(len(summary['id']), 5)
+        self.assertGreater(len(summary['id']), 3)
 
         self.assertIsInstance(summary['url'], basestring)
         self.assertTrue(summary['url'].startswith("http://"))

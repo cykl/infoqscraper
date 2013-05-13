@@ -13,7 +13,7 @@ the presenter but you don't get the slide.
 * build a movie including the slides and the audio track from the resources
 
 The project is split in two part; a reusable library and a command line interface. 
-Only Python 2 is currently supported since PIL is not yet available for Python 3.
+Only Python 2.6 or later is currently supported since PIL is not yet available for Python 3.
 
 # Install
 
@@ -21,7 +21,11 @@ Infoqscraper releases can be installed using `pip` and PyPI.
 
         pip install [--user] infoqscraper
 
-The `infoqscraper` executable will now be available in your path.
+The `infoqscraper` executable should be available in your path. 
+
+If the command cannot be found, you have to add the installation directory 
+(usually `$HOME/.local/bin` with `--user`) to the `PATH` environment variable
+or specify the full path of the command. 
 
 # CLI usage
 
@@ -93,6 +97,34 @@ The following python packages are required:
 To install them, you can run the following command:
 
         pip install -r requirements.txt
+
+# Compatibility
+
+`infoqscraper` is known to work on:
+
+  - Arch Linux
+  - Fedora 17, 18
+  - Ubuntu 12.04.2 LTS
+  
+`ffmpeg` versions from 0.7 to 1.2 are supported. Users of Debian Squeeze or
+Ubuntu 10.04 LTS must use a newer `ffmpeg` release than the one provided by
+their distro. `ffmpeg` 0.5 is too old to be supported (help wanted).
+
+## Arch linux
+
+Packages `python2`, `swftools` and `ffmpeg` must be installed. 
+
+`rtmpdump` is not available and must be installed manually.
+
+## Ubuntu 12.04 LTS (and later)
+
+Packages `ffmpeg`, `rtmpdump` and `libavcodec-extra-53` must be installed.
+
+`swftools` is not available and must installed manually.
+
+## Fedora
+
+Packages `ffmpeg`, `swftools` and `rtmpdump` from rpmfusion must be installed.
 
 # Help
 

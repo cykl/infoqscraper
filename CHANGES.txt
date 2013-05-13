@@ -1,5 +1,10 @@
+0.0.4:
+  - Python 2.6 compatibility
+  - Fix btrfs support (handle EMLINK properly)
+  - ffmpeg 0.8 compatibility (and later)
+
 0.0.3:
-  - Fix support of Arch Linux (and all distributions linking python to python3
+  - Fix support of Arch Linux (and all distributions linking python to python3)
     rather than to python2)
   - Add --version option
 
