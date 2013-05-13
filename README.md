@@ -21,7 +21,11 @@ Infoqscraper releases can be installed using `pip` and PyPI.
 
         pip install [--user] infoqscraper
 
-The `infoqscraper` executable will now be available in your path.
+The `infoqscraper` executable should be available in your path. 
+
+If the command cannot be found, you have to add the installation directory 
+(usually `$HOME/.local/bin` with `--user`) to the `PATH` environment variable
+or specify the full path of the command. 
 
 # CLI usage
 
