@@ -52,7 +52,6 @@ def get_summaries(client, filter=None):
         pass
 
 
-
 class MaxPagesFilter(object):
     """ A summary filter which bound the number fetched RightBarPage"""
 
@@ -230,7 +229,6 @@ class Downloader(object):
 
         return output
 
-
     def download_video(self, output_path=None):
         """Downloads the video.
 
@@ -350,6 +348,7 @@ class Downloader(object):
 
     def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
+
         def convert(slide):
             if slide.endswith("swf"):
                 return swf_render.to_jpeg(slide)
@@ -374,8 +373,8 @@ class Downloader(object):
                     if e.errno == errno.EMLINK:
                         # Create a new reference file when the upper limit is reached
                         # (previous to Linux 3.7, btrfs had a very low limit)
-                    	shutil.copyfile(src, dst)
-                    	src = dst
+                        shutil.copyfile(src, dst)
+                        src = dst
                     else:
                         raise e
                     
@@ -392,7 +391,6 @@ class _RightBarPage(object):
 
     # Number of presentation entries per page returned by rightbar.action
     ENTRIES_PER_PAGES = 10
-
 
     def __init__(self, client, index):
         self.client = client
@@ -437,11 +435,11 @@ class _RightBarPage(object):
                 return div.find('h2', class_='itemtitle').a['title']
 
             return {
-                'id'   : get_id(div),
-                'url' :  get_url(div),
-                'desc' : get_desc(div),
-                'auth' : get_auth(div),
-                'date' : get_date(div),
+                'id':    get_id(div),
+                'url':   get_url(div),
+                'desc':  get_desc(div),
+                'auth':  get_auth(div),
+                'date':  get_date(div),
                 'title': get_title(div),
                 }
 

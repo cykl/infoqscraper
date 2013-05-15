@@ -140,13 +140,13 @@ class TestPresentation(unittest2.TestCase):
             [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
              range(1, 49) + range(50, 51) + range(52, 53) + range(55, 65) + range(66, 72)])
         self.assertEqual(p.metadata['video_url'],
-            "rtmpe://video.infoq.com/cfx/st/")
-	self.assertEqual(p.metadata['video_path'],
-	    "mp4:presentations/12-jun-everythingyoueverwanted.mp4")
+                         "rtmpe://video.infoq.com/cfx/st/")
+        self.assertEqual(p.metadata['video_path'],
+                         "mp4:presentations/12-jun-everythingyoueverwanted.mp4")
         self.assertEqual(p.metadata['pdf'],
-            "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
+                         "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
         self.assertEqual(p.metadata['mp3'],
-            "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
+                         "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
 
     @test.use_cache
     def test_presentation_clojure_expression_problem(self):

@@ -33,9 +33,9 @@ from infoqscraper import presentation
 
 app_name = "infoqscraper"
 try:
-	app_version = pkg_resources.require(app_name)[0].version
+    app_version = pkg_resources.require(app_name)[0].version
 except pkg_resources.DistributionNotFound:
-	app_version = "unknown-version"
+    app_version = "unknown-version"
 
 
 
@@ -98,7 +98,7 @@ class CacheModule(Module):
         self.commands = {
             CacheModule.Size.name: CacheModule.Size,
             CacheModule.Clear.name: CacheModule.Clear,
-        }
+            }
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, self.name))
@@ -176,7 +176,7 @@ class PresentationModule(Module):
                 PresentationModule.PresentationList,
             PresentationModule.PresentationDownload.name:
                 PresentationModule.PresentationDownload,
-        }
+            }
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, PresentationModule.name))
@@ -227,13 +227,12 @@ class PresentationModule(Module):
                     self.hits += 1
                     return s
 
-
         def main(self, infoq_client, args):
             parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, PresentationModule.name, PresentationModule.PresentationList.name))
             parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (10 presentations per page)')
-            parser.add_argument('-n', '--max-hits' , type=int, default=10,   help='maximum number of hits')
-            parser.add_argument('-p', '--pattern'  , type=str, default=None, help='filter hits according to this pattern')
-            parser.add_argument('-s', '--short'    , action="store_true",    help='short output, only ids are displayed')
+            parser.add_argument('-n', '--max-hits',  type=int, default=10,   help='maximum number of hits')
+            parser.add_argument('-p', '--pattern',   type=str, default=None, help='filter hits according to this pattern')
+            parser.add_argument('-s', '--short',     action="store_true",    help='short output, only ids are displayed')
             args = parser.parse_args(args=args)
 
             filter = PresentationModule.PresentationList._Filter(pattern=args.pattern, max_hits=args.max_hits, max_pages=args.max_pages)
@@ -266,15 +265,15 @@ class PresentationModule(Module):
 
         def main(self, infoq_client, args):
             parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, PresentationModule.name, PresentationModule.PresentationDownload.name))
-            parser.add_argument('-f', '--ffmpeg'   , nargs="?", type=str, default="ffmpeg",    help='ffmpeg binary')
+            parser.add_argument('-f', '--ffmpeg',    nargs="?", type=str, default="ffmpeg",    help='ffmpeg binary')
             parser.add_argument('-s', '--swfrender', nargs="?", type=str, default="swfrender", help='swfrender binary')
-            parser.add_argument('-r', '--rtmpdump' , nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
-            parser.add_argument('-o', '--output'   , nargs="?", type=str, help='output file')
-            parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
+            parser.add_argument('-r', '--rtmpdump',  nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
+            parser.add_argument('-o', '--output',    nargs="?", type=str, help='output file')
+            parser.add_argument('-c', '--cache',     action="store_true", help="Enable disk caching.")
             parser.add_argument('identifier', help='name of the presentation or url')
             args = parser.parse_args(args)
 
-            # Check required tools are available before doing any useful workd
+            # Check required tools are available before doing any useful work
             self.__check_dependencies([args.ffmpeg, args.swfrender, args.rtmpdump])
 
             # Process arguments
@@ -287,10 +286,10 @@ class PresentationModule(Module):
                 return warn("Presentation %s not found. Please check your id or url" % id, 2)
 
             kwargs = {
-                "ffmpeg"   :args.ffmpeg,
-                "rtmpdump" :args.rtmpdump,
-                "swfrender":args.swfrender,
-            }
+                "ffmpeg":    args.ffmpeg,
+                "rtmpdump":  args.rtmpdump,
+                "swfrender": args.swfrender,
+                }
 
             with presentation.Downloader(pres, **kwargs) as builder:
                 try:
@@ -331,7 +330,6 @@ def main():
         import locale
         sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
 
-
     modules = {
         PresentationModule.name: PresentationModule,
         CacheModule.name: CacheModule
@@ -340,7 +338,7 @@ def main():
     parser = argparse.ArgumentParser(prog="infoqscraper")
     parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
     parser.add_argument('-V', '--version'  , action="version",    help="Display version",
-                                             version="%s %s" % (app_name, app_version))
+                        version="%s %s" % (app_name, app_version))
     parser.add_argument('module', choices=modules.keys())
     parser.add_argument('module_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
