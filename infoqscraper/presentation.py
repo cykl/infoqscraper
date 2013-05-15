@@ -61,7 +61,7 @@ class MaxPagesFilter(object):
         self.seen = 0
 
     def filter(self, presentation_summary):
-        if self.seen / _RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES >= self.max_pages:
+        if self.seen / _RightBarPage.ENTRIES_PER_PAGES >= self.max_pages:
             raise StopIteration
 
         self.seen += 1
@@ -80,42 +80,40 @@ class Presentation(object):
     def _fetch(self):
         """Download the page and create the soup"""
         url = client.get_url("/presentations/" + self.id)
-        content = self.client.fetch(url).decode('utf-8')
+        content = self.client.fetch_no_cache(url).decode('utf-8')
         return bs4.BeautifulSoup(content, "html5lib")
 
     @property
     def metadata(self):
-        def get_title(bc3):
-            return bc3.find('h1').find('a').get_text().strip()
+        def get_title(pres_div):
+            return pres_div.find('h1', class_="general").div.get_text().strip()
 
-        def get_date(bc3):
-            txt = bc3.find('div', class_='info').find('strong').next_sibling.strip()
-            mo = re.search("[\w]{2,8}\s+[0-9]{1,2}, [0-9]{4}", txt)
-            return datetime.datetime.strptime(mo.group(0), "%b %d, %Y")
+        def get_date(pres_div):
+            str = pres_div.find('span', class_='author_general').contents[2]
+            str = str.replace(u'\n',   u' ')
+            str = str.replace(u'\xa0', u' ')
+            str = str.split("on ")[-1]
+            str = str.strip()
+            return datetime.datetime.strptime(str, "%b %d, %Y")
 
-        def get_author(bc3):
-            return bc3.find('a', class_='editorlink').get_text().strip()
+        def get_author(pres_div):
+            return pres_div.find('span', class_='author_general').contents[1].get_text().strip()
 
-        def get_duration(bc3):
-            txt = bc3.find('span').get_text().strip()
-            mo  = re.search("(\d{2}):(\d{2}):(\d{2})", txt)
-            return int(mo.group(1)) * 60 * 60 + int(mo.group(2)) * 60 + int(mo.group(3))
-
-        def get_timecodes(bc3):
-            for script in bc3.find_all('script'):
+        def get_timecodes(pres_div):
+            for script in pres_div.find_all('script'):
                 mo = re.search("var\s+TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
                 if mo:
                     return [int(tc) for tc in  mo.group(1).split(',')]
 
-        def get_slides(bc3):
-            for script in bc3.find_all('script'):
+        def get_slides(pres_div):
+            for script in pres_div.find_all('script'):
                 mo = re.search("var\s+slides\s?=\s?new\s+Array.?\(('.+')\)", script.get_text())
                 if mo:
                     return [client.get_url(slide.replace('\'', '')) for slide in  mo.group(1).split(',')]
 
-        def get_video(bc3):
-            for script in bc3.find_all('script'):
-                mo = re.search('var jsclassref=\'(.*)\';', script.get_text())
+        def get_video(pres_div):
+            for script in pres_div.find_all('script'):
+                mo = re.search('var jsclassref = \'(.*)\';', script.get_text())
                 if mo:
                     b64 = mo.group(1)
                     path = base64.b64decode(b64)
@@ -128,14 +126,22 @@ class Presentation(object):
                     else:
                         raise Exception("Unsupported video type: %s" % path)
 
+        def get_bio(div):
+            return div.find('p', id="biotext").get_text(strip=True)
 
-        def add_pdf_if_exist(metadata, bc3):
+        def get_summary(div):
+            return "".join(div.find('p', id="summary").get_text("|", strip=True).split("|")[1:])
+
+        def get_about(div):
+            return div.find('p', id="conference").get_text(strip=True)
+
+        def add_pdf_if_exist(metadata, pres_div):
             # The markup is not the same if authenticated or not
-            form = bc3.find('form', id="pdfForm")
+            form = pres_div.find('form', id="pdfForm")
             if form:
                 metadata['pdf'] = client.get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
             else:
-                a = bc3.find('a', class_='link-slides')
+                a = pres_div.find('a', class_='link-slides')
                 if a:
                     metadata['pdf'] = client.get_url(a['href'])
 
@@ -149,73 +155,24 @@ class Presentation(object):
                 if a:
                     metadata['mp3'] = client.get_url(a['href'])
 
-        def add_sections_and_topics(metadata, bc3):
-            # Extracting theses two one is quite ugly since there is not clear separation between
-            # sections, topics and advertisement. We need to iterate over all children and maintain a
-            # state to know who is who
-            in_sections = True
-            in_topics = False
-
-            sections = []
-            topics = []
-
-            for child in bc3.find('dl', class_="tags2").children:
-                if not isinstance(child, bs4.element.Tag):
-                    continue
-
-                if child.name == 'dt' and "topics" in child['class']:
-                    if in_topics:
-                        break
-
-                    in_sections = False
-                    in_topics = True
-                    continue
-
-                if in_sections and child.name == 'dd':
-                    sections.append(child.a.get_text().strip())
-
-                if in_topics and child.name == 'dd':
-                    topics.append(child.a.get_text().strip())
-
-            metadata['sections'] = sections
-            metadata['topics'] = topics
-
-        def add_summary_bio_about(metadata, bc3):
-            content = []
-
-            txt = ""
-            for child in bc3.find('div', id="summaryComponent"):
-                if isinstance(child, bs4.element.NavigableString):
-                    txt += unicode(child).strip()
-                elif child.name == 'b':
-                    content.append(txt)
-                    txt = ""
-                    continue
-                elif child.name == 'br':
-                    continue
-            content.append(txt)
-
-            metadata['summary'] = content[1]
-            metadata['bio']     = content[2]
-            metadata['about']   = content[3]
-
         if not hasattr(self, "_metadata"):
-            box_content_3 = self.soup.find('div', class_='box-content-3')
+            pres_div = self.soup.find('div', class_='presentation_full')
             metadata = {
                 'url': client.get_url("/presentations/" + self.id),
-                'title': get_title(box_content_3),
-                'date' : get_date(box_content_3),
-                'auth' : get_author(box_content_3),
-                'duration': get_duration(box_content_3),
-                'timecodes': get_timecodes(box_content_3),
-                'slides': get_slides(box_content_3),
+                'title': get_title(pres_div),
+                'date' : get_date(pres_div),
+                'auth' : get_author(pres_div),
+                'timecodes': get_timecodes(self.soup),
+                'slides': get_slides(self.soup),
                 'video_url': "rtmpe://video.infoq.com/cfx/st/",
-                'video_path': get_video(box_content_3),
+                'video_path': get_video(self.soup),
+                'bio':        get_bio(pres_div),
+                'summary':    get_summary(pres_div),
+                'about':      get_about(pres_div),
+
                 }
-            add_sections_and_topics(metadata, box_content_3)
-            add_summary_bio_about(metadata, box_content_3)
-            add_mp3_if_exist(metadata, box_content_3)
-            add_pdf_if_exist(metadata, box_content_3)
+            add_mp3_if_exist(metadata, pres_div)
+            add_pdf_if_exist(metadata, pres_div)
 
             self._metadata = metadata
 
@@ -383,7 +340,7 @@ class Downloader(object):
                     "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
                     output
                 ]
-            ret = subprocess.call(cmd, stderr=subprocess.STDOUT)
+            utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
                             "\tExit code: %s\n"
@@ -434,7 +391,7 @@ class _RightBarPage(object):
     """
 
     # Number of presentation entries per page returned by rightbar.action
-    RIGHT_BAR_ENTRIES_PER_PAGES = 8
+    ENTRIES_PER_PAGES = 10
 
 
     def __init__(self, client, index):
@@ -447,19 +404,9 @@ class _RightBarPage(object):
         try:
             return self._soup
         except AttributeError:
-            params = {
-                "language": "en",
-                "selectedTab": "PRESENTATION",
-                "startIndex": self.index * _RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES,
-                }
-            # Do not use iq.fetch to avoid caching since the rightbar is a dynamic page
-            url = client.get_url("/rightbar.action")
-            with contextlib.closing(self.client.opener.open(url, urllib.urlencode(params))) as response:
-                if response.getcode() != 200:
-                    raise Exception("Fetching rightbar index %s failed" % self.index)
-                content = response.read().decode('utf-8')
-
-                self._soup = bs4.BeautifulSoup(content)
+            url = client.get_url("/presentations/%s" % (self.index * _RightBarPage.ENTRIES_PER_PAGES))
+            content = self.client.fetch_no_cache(url).decode('utf-8')
+            self._soup = bs4.BeautifulSoup(content)
 
             return self._soup
 
@@ -467,28 +414,27 @@ class _RightBarPage(object):
         """Return a list of all the presentation summaries contained in this page"""
         def create_summary(div):
             def get_id(div):
-                return get_path(div).rsplit('/', 1)[1]
-
-            def get_path(div):
-                # remove session id if present
-                return div.find('a')['href'].rsplit(';', 2)[0]
+                return get_url(div).rsplit('/')[-1]
 
             def get_url(div):
-                return client.get_url(get_path(div))
+                return client.get_url(div.find('h2', class_='itemtitle').a['href'])
 
             def get_desc(div):
-                return div.find('p', class_='image').find_next_sibling('p').get_text(strip=True)
+                return div.p.get_text(strip=True)
 
             def get_auth(div):
-                return div.find('a', class_='editorlink').get_text(strip=True)
+                return div.find('span', class_='author').a['title']
 
             def get_date(div):
-                # Some pages have a comma after the date
-                str = div.find('a', class_='editorlink').parent.next_sibling.strip(" \t\n\r,")
+                str = div.find('span', class_='author').get_text()
+                str = str.replace(u'\n',   u' ')
+                str = str.replace(u'\xa0', u' ')
+                str = str.split("on ")[-1]
+                str = str.strip()
                 return datetime.datetime.strptime(str, "%b %d, %Y")
 
             def get_title(div):
-                return div.find('h1').get_text().strip()
+                return div.find('h2', class_='itemtitle').a['title']
 
             return {
                 'id'   : get_id(div),
@@ -499,5 +445,5 @@ class _RightBarPage(object):
                 'title': get_title(div),
                 }
 
-        entries = self.soup.findAll('div', {'class': 'entry'})
-        return [create_summary(div) for div in entries]
+        videos = self.soup.findAll('div', {'class': 'news_type_video'})
+        return [create_summary(div) for div in videos]

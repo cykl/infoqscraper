@@ -230,7 +230,7 @@ class PresentationModule(Module):
 
         def main(self, infoq_client, args):
             parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, PresentationModule.name, PresentationModule.PresentationList.name))
-            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (8 presentations per page)')
+            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (10 presentations per page)')
             parser.add_argument('-n', '--max-hits' , type=int, default=10,   help='maximum number of hits')
             parser.add_argument('-p', '--pattern'  , type=str, default=None, help='filter hits according to this pattern')
             parser.add_argument('-s', '--short'    , action="store_true",    help='short output, only ids are displayed')
