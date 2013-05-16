@@ -24,6 +24,17 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from distutils.core import setup
+import sys
+
+install_requires=[
+    "BeautifulSoup4",
+    "html5lib",
+    "PIL",
+]
+if sys.version_info < (2, 7):
+    install_requires += ['argparse']
+
+
 setup(
     version="0.0.5-dev",
     name="infoqscraper",
@@ -48,11 +59,6 @@ infoqscraper allows to scrap the website, download the required resources and bu
 
     packages=["infoqscraper"],
     scripts=["bin/infoqscraper"],
-    install_requires=[
-        "BeautifulSoup4",
-        "html5lib",
-        "PIL",
-	"argparse",
-    ],
+    install_requires=install_requires,
 )
 
