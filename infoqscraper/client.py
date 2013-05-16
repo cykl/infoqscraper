@@ -36,6 +36,7 @@ def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
+INFOQ_404_URL = 'http://www.infoq.com/error?sc=404'
 
 class DownloadError(Exception):
     pass
@@ -101,6 +102,9 @@ class InfoQ(object):
         try:
 
             with contextlib.closing(self.opener.open(url)) as response:
+                # InfoQ does not send a 404 but a 302 redirecting to a valid URL...
+                if response.code != 200 or response.url == INFOQ_404_URL:
+                    raise DownloadError("%s not found" % url)
                 return response.read()
         except urllib2.URLError as e:
             raise DownloadError("Failed to get %s: %s" % (url, e))

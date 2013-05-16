@@ -54,7 +54,7 @@ class TestSummaries(unittest2.TestCase):
     @test.use_cache
     def test_summaries(self):
         summaries = presentation.get_summaries(self.iq)
-        for i in xrange(presentation._RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES + 1):
+        for i in xrange(presentation._RightBarPage.ENTRIES_PER_PAGES + 1):
             summary = summaries.next()
             self.assert_valid_summary(summary)
 
@@ -64,10 +64,10 @@ class TestSummaries(unittest2.TestCase):
         count = 0
         for summary in presentation.get_summaries(self.iq, filter=presentation.MaxPagesFilter(1)):
             self.assert_valid_summary(summary)
-            self.assertLessEqual(count, presentation._RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES)
+            self.assertLessEqual(count, presentation._RightBarPage.ENTRIES_PER_PAGES)
             count += 1
 
-        self.assertEqual(count, presentation._RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES)
+        self.assertEqual(count, presentation._RightBarPage.ENTRIES_PER_PAGES)
 
 
 class TestPresentation(unittest2.TestCase):
@@ -76,22 +76,14 @@ class TestPresentation(unittest2.TestCase):
 
     def assertValidPresentationMetadata(self, m):
         # Audio and Pdf are not always available
-        self.assertGreaterEqual(len(m), 14)
-        self.assertLessEqual(len(m), 16)
+        self.assertGreaterEqual(len(m), 13)
+        self.assertLessEqual(len(m), 15)
 
         self.assertIsInstance(m['title'], basestring)
 
         self.assertIsInstance(m['date'], datetime.datetime)
 
-        self.assertIsInstance(m['duration'], int)
-
-        self.assertIsInstance(m['sections'], list)
-        for s in m['sections']:
-            self.assertIsInstance(s, basestring)
-
-        self.assertIsInstance(m['topics'], list)
-        for s in m['topics']:
-            self.assertIsInstance(s, basestring)
+        #self.assertIsInstance(m['duration'], int)
 
         self.assertIsInstance(m['summary'], basestring)
 
@@ -132,12 +124,9 @@ class TestPresentation(unittest2.TestCase):
         self.assertEqual(p.metadata['title'], "Understanding Java Garbage Collection and What You Can Do about It")
         self.assertEqual(p.metadata['date'], datetime.datetime(2012, 10, 17))
         self.assertEqual(p.metadata['auth'], "Gil Tene")
-        self.assertEqual(p.metadata['duration'], 3469)
-        self.assertEqual(p.metadata['sections'], ['Architecture & Design', 'Development'])
-        self.assertItemsEqual(p.metadata['topics'],
-            ['Azul Zing', 'Azul', 'JVM', 'Virtual Machines', 'Runtimes', 'Java', 'QCon New York 2012', 'GarbageCollection', 'QCon'])
+        #self.assertEqual(p.metadata['duration'], 3469)
         self.assertItemsEqual(p.metadata['summary'],
-            "Gil Tene explains how a garbage collector works, covering the fundamentals, mechanism, terminology and metrics. He classifies several GCs, and introduces Azul C4.")
+            u"Gil Tene explains how a garbage collector works, covering the fundamentals, mechanism, terminology and metrics. He classifies several GCs, and introduces Azul C4.")
         self.assertEqual(p.metadata['bio'],
             "Gil Tene is CTO and co-founder of Azul Systems. He has been involved with virtual machine technologies for the past 20 years and has been building Java technology-based products since 1995. Gil pioneered Azul's Continuously Concurrent Compacting Collector (C4), Java Virtualization, Elastic Memory, and various managed runtime and systems stack technologies.")
         self.assertEqual(p.metadata['about'],
@@ -151,13 +140,13 @@ class TestPresentation(unittest2.TestCase):
             [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
              range(1, 49) + range(50, 51) + range(52, 53) + range(55, 65) + range(66, 72)])
         self.assertEqual(p.metadata['video_url'],
-            "rtmpe://video.infoq.com/cfx/st/")
-	self.assertEqual(p.metadata['video_path'],
-	    "mp4:presentations/12-jun-everythingyoueverwanted.mp4")
+                         "rtmpe://video.infoq.com/cfx/st/")
+        self.assertEqual(p.metadata['video_path'],
+                         "mp4:presentations/12-jun-everythingyoueverwanted.mp4")
         self.assertEqual(p.metadata['pdf'],
-            "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
+                         "http://www.infoq.com/pdfdownload.action?filename=presentations%2FQConNY2012-GilTene-EverythingyoueverwantedtoknowaboutJavaCollectionbutweretooafraidtoask.pdf")
         self.assertEqual(p.metadata['mp3'],
-            "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
+                         "http://www.infoq.com/mp3download.action?filename=presentations%2Finfoq-12-jun-everythingyoueverwanted.mp3")
 
     @test.use_cache
     def test_presentation_clojure_expression_problem(self):

@@ -53,7 +53,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
     def test_max_pages(self):
         cmd = self.build_list_cmd(['-m', '1'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
-        self.assertEqual(output.count("Id: "), presentation._RightBarPage.RIGHT_BAR_ENTRIES_PER_PAGES)
+        self.assertEqual(output.count("Id: "), presentation._RightBarPage.ENTRIES_PER_PAGES)
 
     def test_pattern(self):
         infoq_client = client.InfoQ(cache_enabled=True)
