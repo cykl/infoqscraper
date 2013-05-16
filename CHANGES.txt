@@ -1,3 +1,8 @@
+0.0.5:
+  - Create requirements-extra-python2.6.txt for python 2.6 only dependencies
+  - Remove html5lib dependency. The built-in parse now works fine and a bug in
+    BeautifulSoup 4.2.0/html5lib prevent from parsing the pages correctly
+
 0.0.4:
   - Python 2.6 compatibility
   - Fix btrfs support (handle EMLINK properly)

@@ -80,7 +80,7 @@ class Presentation(object):
         """Download the page and create the soup"""
         url = client.get_url("/presentations/" + self.id)
         content = self.client.fetch_no_cache(url).decode('utf-8')
-        return bs4.BeautifulSoup(content, "html5lib")
+        return bs4.BeautifulSoup(content, "html.parser")
 
     @property
     def metadata(self):

@@ -91,7 +91,6 @@ Use `infoqscraper presentation download -h` to learn more.
 The following python packages are required:
 
 1. BeautifulSoup4
-2. html5lib
 3. PIL
 
 To install them, you can run the following command:
@@ -132,3 +131,4 @@ Feel free to contact me if you have any question or feature request.
 
 If you find this project useful, any contribution or feedback is welcome. If you are not a developer, improving
 the packaging, the documentation or fixing my broken English could be a good start.
+
