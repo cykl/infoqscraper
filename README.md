@@ -138,3 +138,7 @@ the packaging, the documentation or fixing my broken English could be a good sta
     InfoQ changed the layout of the page in May 2013. You must upgrade to a newer 
     version.
   
+  - Version 0.0.4 is not compatible with BeautilfulSoup4 4.2.0. You should
+    downgrade to BeautifulSoup4 4.1.3 using the following command: 
+    `pip install beautifulsoup4==4.1.3`. Later versions fix this issue.
+
