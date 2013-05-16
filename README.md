@@ -132,3 +132,9 @@ Feel free to contact me if you have any question or feature request.
 If you find this project useful, any contribution or feedback is welcome. If you are not a developer, improving
 the packaging, the documentation or fixing my broken English could be a good start.
 
+# Known issues
+
+  - Versions previous 0.0.4 are no longer able to parse the current InfoQ website. 
+    InfoQ changed the layout of the page in May 2013. You must upgrade to a newer 
+    version.
+  
