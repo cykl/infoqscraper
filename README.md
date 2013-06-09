@@ -91,7 +91,6 @@ Use `infoqscraper presentation download -h` to learn more.
 The following python packages are required:
 
 1. BeautifulSoup4
-2. html5lib
 3. PIL
 
 To install them, you can run the following command:
@@ -132,3 +131,14 @@ Feel free to contact me if you have any question or feature request.
 
 If you find this project useful, any contribution or feedback is welcome. If you are not a developer, improving
 the packaging, the documentation or fixing my broken English could be a good start.
+
+# Known issues
+
+  - Versions previous 0.0.4 are no longer able to parse the current InfoQ website. 
+    InfoQ changed the layout of the page in May 2013. You must upgrade to a newer 
+    version.
+  
+  - Version 0.0.4 is not compatible with BeautilfulSoup4 4.2.0. You should
+    downgrade to BeautifulSoup4 4.1.3 using the following command: 
+    `pip install beautifulsoup4==4.1.3`. Later versions fix this issue.
+
