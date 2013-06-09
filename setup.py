@@ -36,7 +36,7 @@ if sys.version_info < (2, 7):
 
 
 setup(
-    version="0.0.5-dev",
+    version="0.0.6-dev",
     name="infoqscraper",
 
     description="A Web scraper for www.InfoQ.com",
