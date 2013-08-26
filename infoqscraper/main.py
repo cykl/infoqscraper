@@ -216,20 +216,32 @@ class PresentationModule(Module):
                 self.max_hits = max_hits
                 self.hits = 0
 
-            def filter(self, p_summary):
-                import re
+            def filter(self, p_summaries):
 
                 if self.hits >= self.max_hits:
                     raise StopIteration
 
-                s = super(PresentationModule.PresentationList._Filter, self).filter(p_summary)
-                if s and not self.pattern or re.search(self.pattern, p_summary['desc'] + " " + p_summary['title'], flags=re.I):
-                    self.hits += 1
-                    return s
+                s = super(PresentationModule.PresentationList._Filter, self).filter(p_summaries)
+                s = filter(self._do_match, s)
+                s = s[:(self.max_hits - self.hits)]  # Remove superfluous items
+                self.hits += len(s)
+                return s
+
+            def _do_match(self, summary):
+                """ Return true whether the summary match the filtering criteria """
+                if summary is None:
+                    return False
+
+                if self.pattern is None:
+                    return True
+
+                search_txt = summary['desc'] + " " + summary['title']
+                return re.search(self.pattern, search_txt, flags=re.I)
+
 
         def main(self, infoq_client, args):
             parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, PresentationModule.name, PresentationModule.PresentationList.name))
-            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (10 presentations per page)')
+            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to fetch (~10 presentations per page)')
             parser.add_argument('-n', '--max-hits',  type=int, default=10,   help='maximum number of hits')
             parser.add_argument('-p', '--pattern',   type=str, default=None, help='filter hits according to this pattern')
             parser.add_argument('-s', '--short',     action="store_true",    help='short output, only ids are displayed')

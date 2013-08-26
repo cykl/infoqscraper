@@ -37,34 +37,42 @@ import subprocess
 import tempfile
 import urllib
 
+
 def get_summaries(client, filter=None):
     """ Generate presentation summaries in a reverse chronological order.
 
      A filter class can be supplied to filter summaries or bound the fetching process.
     """
     try:
-        for page_index in xrange(1000):
-            rb = _RightBarPage(client, page_index)
-            for summary in rb.summaries():
-                if not filter or filter.filter(summary):
+        index = 0
+        while True:
+            rb = _RightBarPage(client, index)
+
+            summaries = rb.summaries()
+            if filter is not None:
+                summaries = filter.filter(summaries)
+
+            for summary in summaries:
                     yield summary
+
+            index += len(summaries)
     except StopIteration:
         pass
 
 
 class MaxPagesFilter(object):
-    """ A summary filter which bound the number fetched RightBarPage"""
+    """ A summary filter set an upper bound on the number fetched pages"""
 
     def __init__(self, max_pages):
         self.max_pages = max_pages
-        self.seen = 0
+        self.page_count = 0
 
-    def filter(self, presentation_summary):
-        if self.seen / _RightBarPage.ENTRIES_PER_PAGES >= self.max_pages:
+    def filter(self, presentation_summaries):
+        if self.page_count >= self.max_pages:
             raise StopIteration
 
-        self.seen += 1
-        return presentation_summary
+        self.page_count += 1
+        return presentation_summaries
 
 
 class Presentation(object):
@@ -389,9 +397,6 @@ class _RightBarPage(object):
     This page lists all available presentations with pagination.
     """
 
-    # Number of presentation entries per page returned by rightbar.action
-    ENTRIES_PER_PAGES = 10
-
     def __init__(self, client, index):
         self.client = client
         self.index = index
@@ -402,7 +407,7 @@ class _RightBarPage(object):
         try:
             return self._soup
         except AttributeError:
-            url = client.get_url("/presentations/%s" % (self.index * _RightBarPage.ENTRIES_PER_PAGES))
+            url = client.get_url("/presentations/%s" % self.index)
             content = self.client.fetch_no_cache(url).decode('utf-8')
             self._soup = bs4.BeautifulSoup(content)
 
