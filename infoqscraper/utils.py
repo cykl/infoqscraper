@@ -30,29 +30,30 @@ import subprocess
 import tempfile
 
 if sys.hexversion >= 0x02070000:
-	check_output = subprocess.check_output
+    check_output = subprocess.check_output
+
 else:
-	def _check_output_backport(*popenargs, **kwargs):
-		r"""Run command with arguments and return its output as a byte string.
-	 
-		Backported from Python 2.7 as it's implemented as pure python on stdlib.
-	 
-		>>> check_output(['/usr/bin/python', '--version'])
-		Python 2.6.2
-		"""
-		process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-		output, unused_err = process.communicate()
-		retcode = process.poll()
-		if retcode:
-			cmd = kwargs.get("args")
-			if cmd is None:
-				cmd = popenargs[0]
-			error = subprocess.CalledProcessError(retcode, cmd)
-			error.output = output
-			raise error
-		return output
-	
-	check_output = _check_output_backport
+    def _check_output_backport(*popenargs, **kwargs):
+        r"""Run command with arguments and return its output as a byte string.
+
+        Backported from Python 2.7 as it's implemented as pure python on stdlib.
+
+        >>> check_output(['/usr/bin/python', '--version'])
+        Python 2.6.2
+        """
+        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            cmd = kwargs.get("args")
+            if cmd is None:
+                cmd = popenargs[0]
+            error = subprocess.CalledProcessError(retcode, cmd)
+            error.output = output
+            raise error
+        return output
+
+    check_output = _check_output_backport
 
 
 class SwfConverter(object):

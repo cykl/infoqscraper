@@ -33,7 +33,7 @@ except KeyError:
 
 try:
     PASSWORD = os.environ['INFOQ_PASSWORD']
-except  KeyError:
+except KeyError:
     PASSWORD = None
 
 
@@ -44,6 +44,7 @@ def use_cache(func):
         self.iq.cache = cache.XDGCache()
         func(self, *args, **kwargs)
     return _use_cache
+
 
 def get_latest_presentation(client):
     summary = presentation.get_summaries(client).next()

@@ -25,7 +25,6 @@
 
 import base64
 import bs4
-import contextlib
 import datetime
 import errno
 from infoqscraper import client
@@ -185,6 +184,7 @@ class Presentation(object):
 
         return self._metadata
 
+
 class Downloader(object):
 
     def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
@@ -339,13 +339,13 @@ class Downloader(object):
             # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
             # scaling issues with image2.
             cmd = [
-                    self.ffmpeg, "-v", "0",
-                    "-i", audio, 
-                    "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
-                    "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
-                    "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
-                    output
-                ]
+                self.ffmpeg, "-v", "0",
+                "-i", audio,
+                "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
+                "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
+                "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
+                output
+            ]
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
@@ -373,7 +373,7 @@ class Downloader(object):
         frame = 0
         for slide_index in xrange(len(slides)):
             src = slides[slide_index]
-            for remaining  in xrange(timecodes[slide_index], timecodes[slide_index+1]):
+            for remaining in xrange(timecodes[slide_index], timecodes[slide_index+1]):
                 dst = os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame)
                 try:
                     os.link(src, dst)
@@ -446,7 +446,7 @@ class _RightBarPage(object):
                 'auth':  get_auth(div),
                 'date':  get_date(div),
                 'title': get_title(div),
-                }
+            }
 
         videos = self.soup.findAll('div', {'class': 'news_type_video'})
         return [create_summary(div) for div in videos]

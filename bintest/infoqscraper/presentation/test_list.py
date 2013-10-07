@@ -30,13 +30,14 @@ import subprocess
 
 usage_prefix = "usage: infoqscraper presentation"
 
+
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def build_list_cmd(self, args):
         return self.build_cmd([]) + ['-c', 'presentation', 'list'] + args
 
     def test_help(self):
-        cmd =  self.build_list_cmd(['--help'])
+        cmd = self.build_list_cmd(['--help'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 

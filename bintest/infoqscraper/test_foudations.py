@@ -29,10 +29,12 @@ from infoqscraper import utils
 
 usage_prefix = "usage: infoqscraper ["
 
+
 class TestTestHelpers(bintest.infoqscraper.TestInfoqscraper):
 
     def test_infoqscraper_path(self):
         self.assertTrue(os.path.exists(self.infoqscraper_path))
+
 
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
@@ -47,7 +49,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             self.assertTrue(e.output.startswith(usage_prefix))
 
     def test_help(self):
-        cmd =  self.build_cmd(['--help'])
+        cmd = self.build_cmd(['--help'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 

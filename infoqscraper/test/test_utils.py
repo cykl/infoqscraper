@@ -31,17 +31,19 @@ import tempfile
 import unittest2
 import subprocess
 
+
 class TestCheckOutputBackport(unittest2.TestCase):
 
-	def test_ok(self):
-		utils.check_output(["python", "-h"])
+    def test_ok(self):
+        utils.check_output(["python", "-h"])
 
-	def test_error(self):
-		try:
-			with open(os.devnull, "w") as fnull:
-				utils.check_output(["python", "--foo"], stderr=subprocess.STDOUT)
-		except subprocess.CalledProcessError as e:
-			self.assertEquals(e.returncode, 2)	
+    def test_error(self):
+        try:
+            with open(os.devnull, "w") as fnull:
+                utils.check_output(["python", "--foo"], stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            self.assertEquals(e.returncode, 2)
+
 
 class TestSwfConverter(unittest2.TestCase):
 

@@ -38,13 +38,13 @@ except pkg_resources.DistributionNotFound:
     app_version = "unknown-version"
 
 
-
-
 class ArgumentError(Exception):
     pass
 
+
 class CommandError(Exception):
     pass
+
 
 class Module(object):
     """Regroups  a set of commands by topic."""
@@ -114,7 +114,6 @@ class CacheModule(Module):
         command = command_class()
         return command.main(infoq_client, args.command_args)
 
-
     class Clear(Command):
         """Clears the cache."""
         name = "clear"
@@ -146,11 +145,11 @@ class CacheModule(Module):
 
         def __humanize(self, bytes, precision=2):
             suffixes = (
-                (1<<50L, 'PB'),
-                (1<<40L, 'TB'),
-                (1<<30L, 'GB'),
-                (1<<20L, 'MB'),
-                (1<<10L, 'kB'),
+                (1 << 50L, 'PB'),
+                (1 << 40L, 'TB'),
+                (1 << 30L, 'GB'),
+                (1 << 20L, 'MB'),
+                (1 << 10L, 'kB'),
                 (1, 'bytes')
             )
             if bytes == 1:
@@ -159,6 +158,7 @@ class CacheModule(Module):
                 if bytes >= factor:
                     break
             return '%.*f %s' % (precision, bytes / factor, suffix)
+
 
 class PresentationModule(Module):
     """All commands related to presentations go here.
@@ -172,11 +172,9 @@ class PresentationModule(Module):
 
     def __init__(self):
         self.commands = {
-            PresentationModule.PresentationList.name:
-                PresentationModule.PresentationList,
-            PresentationModule.PresentationDownload.name:
-                PresentationModule.PresentationDownload,
-            }
+            PresentationModule.PresentationList.name: PresentationModule.PresentationList,
+            PresentationModule.PresentationDownload.name: PresentationModule.PresentationDownload,
+        }
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, PresentationModule.name))
@@ -191,7 +189,6 @@ class PresentationModule(Module):
 
         command = command_class()
         return command.main(infoq_client, args.command_args)
-
 
     class PresentationList(Command):
         """List available presentations."""
@@ -334,6 +331,7 @@ class PresentationModule(Module):
 def warn(str, code=1):
     print >> sys.stderr, str
     return code
+
 
 def main():
     # Required when stdout is piped

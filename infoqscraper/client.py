@@ -31,12 +31,12 @@ import urllib
 import urllib2
 
 
-
 def get_url(path, scheme="http"):
     """ Return the full InfoQ URL """
     return scheme + "://www.infoq.com" + path
 
 INFOQ_404_URL = 'http://www.infoq.com/error?sc=404'
+
 
 class DownloadError(Exception):
     pass
@@ -111,7 +111,7 @@ class InfoQ(object):
 
     def download(self, url, dir_path, filename=None):
         if not filename:
-            filename =  url.rsplit('/', 1)[1]
+            filename = url.rsplit('/', 1)[1]
         path = os.path.join(dir_path, filename)
 
         content = self.fetch(url)

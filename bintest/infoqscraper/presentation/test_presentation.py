@@ -28,6 +28,7 @@ from infoqscraper import utils
 
 usage_prefix = "usage: infoqscraper presentation"
 
+
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def build_presentation_cmd(self, args):
@@ -44,7 +45,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             self.assertTrue(e.output.startswith(usage_prefix))
 
     def test_help(self):
-        cmd =  self.build_presentation_cmd(['--help'])
+        cmd = self.build_presentation_cmd(['--help'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
