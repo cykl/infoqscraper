@@ -75,12 +75,13 @@ class InfoQ(object):
         params = {
             'username': username,
             'password': password,
-            'fromHeader': 'true',
             'submit-login': '',
-            }
+        }
         with contextlib.closing(self.opener.open(url, urllib.urlencode(params))) as response:
-            if not "loginAction_ok.jsp" in response.url:
-                raise AuthenticationError("Login failed")
+            if not "loginAction.jsp" in response.url:
+                raise AuthenticationError("Login failed. Unexpected redirection: %s" % response.url)
+            if not "resultMessage=success" in response.url:
+                raise AuthenticationError("Login failed.")
 
         self.authenticated = True
 
