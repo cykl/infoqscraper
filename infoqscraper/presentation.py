@@ -432,9 +432,8 @@ class _RightBarPage(object):
                 str = div.find('span', class_='author').get_text()
                 str = str.replace(u'\n',   u' ')
                 str = str.replace(u'\xa0', u' ')
-                str = str.split("on ")[-1]
-                str = str.strip()
-                return datetime.datetime.strptime(str, "%b %d, %Y")
+                match = re.search(r'on\s+(\w{3} [0-9]{1,2}, 20[0-9]{2})', str)
+                return datetime.datetime.strptime(match.group(1), "%b %d, %Y")
 
             def get_title(div):
                 return div.find('h2', class_='itemtitle').a['title']
