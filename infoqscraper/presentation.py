@@ -107,9 +107,9 @@ class Presentation(object):
 
         def get_timecodes(pres_div):
             for script in pres_div.find_all('script'):
-                mo = re.search("var\s+TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
+                mo = re.search("TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
                 if mo:
-                    return [int(tc) for tc in  mo.group(1).split(',')]
+                    return [int(tc) for tc in mo.group(1).split(',')]
 
         def get_slides(pres_div):
             for script in pres_div.find_all('script'):
