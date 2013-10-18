@@ -1,3 +1,6 @@
+0.0.6:
+  - Fix several regressions due to markup changes
+
 0.0.5:
   - Create requirements-extra-python2.6.txt for python 2.6 only dependencies
   - Remove html5lib dependency. The built-in parse now works fine and a bug in
@@ -14,4 +17,4 @@
   - Fix support of Arch Linux (and all distributions linking python to python3)
     rather than to python2)
   - Add --version option
-
+ 
