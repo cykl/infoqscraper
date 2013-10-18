@@ -34,7 +34,7 @@ from infoqscraper import utils
 usage_prefix = "usage: infoqscraper presentation"
 
 # Shorter is better to speed up the test suite.
-short_presentation_id = "Batmanjs" # 25 minutes
+short_presentation_id = "Batmanjs"  # 25 minutes
 
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
@@ -42,7 +42,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
         return self.build_cmd([]) + ['-c', 'presentation', 'download'] + args
 
     def test_help(self):
-        cmd =  self.build_download_cmd(['--help'])
+        cmd = self.build_download_cmd(['--help'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
@@ -58,7 +58,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
     def test_download(self):
         tmp_dir = tempfile.mkdtemp()
         output_path = os.path.join(tmp_dir, "output.avi")
-        cmd =  self.build_download_cmd([short_presentation_id, '-o', output_path])
+        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(os.path.exists(output_path))
         shutil.rmtree(tmp_dir)
@@ -94,7 +94,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             os.symlink(ffmpeg_path, alias_path)
 
             output_path = os.path.join(tmp_dir, "output.avi")
-            cmd =  self.build_download_cmd([short_presentation_id, '-o', output_path])
+            cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
             output = utils.check_output(cmd, stderr=subprocess.STDOUT)
             self.assertTrue(os.path.exists(output_path))
         finally:

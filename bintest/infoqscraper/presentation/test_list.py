@@ -30,13 +30,14 @@ import subprocess
 
 usage_prefix = "usage: infoqscraper presentation"
 
+
 class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def build_list_cmd(self, args):
         return self.build_cmd([]) + ['-c', 'presentation', 'list'] + args
 
     def test_help(self):
-        cmd =  self.build_list_cmd(['--help'])
+        cmd = self.build_list_cmd(['--help'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(output.startswith(usage_prefix))
 
@@ -53,7 +54,10 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
     def test_max_pages(self):
         cmd = self.build_list_cmd(['-m', '1'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
-        self.assertEqual(output.count("Id: "), presentation._RightBarPage.ENTRIES_PER_PAGES)
+        # Nowadays, the /presentations page contains more than 10 entries
+        # The number of returned items is then determined by the implicit
+        # -n 10 parameter
+        self.assertEqual(output.count("Id: "), 10)
 
     def test_pattern(self):
         infoq_client = client.InfoQ(cache_enabled=True)

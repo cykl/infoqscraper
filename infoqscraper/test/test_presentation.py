@@ -54,7 +54,7 @@ class TestSummaries(unittest2.TestCase):
     @test.use_cache
     def test_summaries(self):
         summaries = presentation.get_summaries(self.iq)
-        for i in xrange(presentation._RightBarPage.ENTRIES_PER_PAGES + 1):
+        for i in xrange(12):
             summary = summaries.next()
             self.assert_valid_summary(summary)
 
@@ -64,10 +64,11 @@ class TestSummaries(unittest2.TestCase):
         count = 0
         for summary in presentation.get_summaries(self.iq, filter=presentation.MaxPagesFilter(1)):
             self.assert_valid_summary(summary)
-            self.assertLessEqual(count, presentation._RightBarPage.ENTRIES_PER_PAGES)
+            # The number of presentation per page to be updated from time to time
+            # We expect that the number of presentation will never be greater than
+            # this magic number
+            self.assertLessEqual(count, 20)
             count += 1
-
-        self.assertEqual(count, presentation._RightBarPage.ENTRIES_PER_PAGES)
 
 
 class TestPresentation(unittest2.TestCase):

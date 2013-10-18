@@ -28,6 +28,7 @@ import shutil
 import tempfile
 import unittest2
 
+
 class TestLogin(unittest2.TestCase):
     def setUp(self):
         self.iq = client.InfoQ()
@@ -37,7 +38,7 @@ class TestLogin(unittest2.TestCase):
 
     def test_login_ok(self):
         if test.USERNAME and test.PASSWORD:
-            self.iq.login(test.USERNAME,test. PASSWORD)
+            self.iq.login(test.USERNAME, test.PASSWORD)
             self.assertTrue(self.iq.authenticated)
 
     def test_login_fail(self):

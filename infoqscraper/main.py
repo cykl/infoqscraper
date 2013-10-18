@@ -38,13 +38,13 @@ except pkg_resources.DistributionNotFound:
     app_version = "unknown-version"
 
 
-
-
 class ArgumentError(Exception):
     pass
 
+
 class CommandError(Exception):
     pass
+
 
 class Module(object):
     """Regroups  a set of commands by topic."""
@@ -114,7 +114,6 @@ class CacheModule(Module):
         command = command_class()
         return command.main(infoq_client, args.command_args)
 
-
     class Clear(Command):
         """Clears the cache."""
         name = "clear"
@@ -146,11 +145,11 @@ class CacheModule(Module):
 
         def __humanize(self, bytes, precision=2):
             suffixes = (
-                (1<<50L, 'PB'),
-                (1<<40L, 'TB'),
-                (1<<30L, 'GB'),
-                (1<<20L, 'MB'),
-                (1<<10L, 'kB'),
+                (1 << 50L, 'PB'),
+                (1 << 40L, 'TB'),
+                (1 << 30L, 'GB'),
+                (1 << 20L, 'MB'),
+                (1 << 10L, 'kB'),
                 (1, 'bytes')
             )
             if bytes == 1:
@@ -159,6 +158,7 @@ class CacheModule(Module):
                 if bytes >= factor:
                     break
             return '%.*f %s' % (precision, bytes / factor, suffix)
+
 
 class PresentationModule(Module):
     """All commands related to presentations go here.
@@ -172,11 +172,9 @@ class PresentationModule(Module):
 
     def __init__(self):
         self.commands = {
-            PresentationModule.PresentationList.name:
-                PresentationModule.PresentationList,
-            PresentationModule.PresentationDownload.name:
-                PresentationModule.PresentationDownload,
-            }
+            PresentationModule.PresentationList.name: PresentationModule.PresentationList,
+            PresentationModule.PresentationDownload.name: PresentationModule.PresentationDownload,
+        }
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, PresentationModule.name))
@@ -191,7 +189,6 @@ class PresentationModule(Module):
 
         command = command_class()
         return command.main(infoq_client, args.command_args)
-
 
     class PresentationList(Command):
         """List available presentations."""
@@ -216,20 +213,32 @@ class PresentationModule(Module):
                 self.max_hits = max_hits
                 self.hits = 0
 
-            def filter(self, p_summary):
-                import re
+            def filter(self, p_summaries):
 
                 if self.hits >= self.max_hits:
                     raise StopIteration
 
-                s = super(PresentationModule.PresentationList._Filter, self).filter(p_summary)
-                if s and not self.pattern or re.search(self.pattern, p_summary['desc'] + " " + p_summary['title'], flags=re.I):
-                    self.hits += 1
-                    return s
+                s = super(PresentationModule.PresentationList._Filter, self).filter(p_summaries)
+                s = filter(self._do_match, s)
+                s = s[:(self.max_hits - self.hits)]  # Remove superfluous items
+                self.hits += len(s)
+                return s
+
+            def _do_match(self, summary):
+                """ Return true whether the summary match the filtering criteria """
+                if summary is None:
+                    return False
+
+                if self.pattern is None:
+                    return True
+
+                search_txt = summary['desc'] + " " + summary['title']
+                return re.search(self.pattern, search_txt, flags=re.I)
+
 
         def main(self, infoq_client, args):
             parser = argparse.ArgumentParser(prog="%s %s %s" % (app_name, PresentationModule.name, PresentationModule.PresentationList.name))
-            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to retrieve (10 presentations per page)')
+            parser.add_argument('-m', '--max-pages', type=int, default=10,   help='maximum number of pages to fetch (~10 presentations per page)')
             parser.add_argument('-n', '--max-hits',  type=int, default=10,   help='maximum number of hits')
             parser.add_argument('-p', '--pattern',   type=str, default=None, help='filter hits according to this pattern')
             parser.add_argument('-s', '--short',     action="store_true",    help='short output, only ids are displayed')
@@ -322,6 +331,7 @@ class PresentationModule(Module):
 def warn(str, code=1):
     print >> sys.stderr, str
     return code
+
 
 def main():
     # Required when stdout is piped

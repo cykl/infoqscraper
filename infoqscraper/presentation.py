@@ -25,7 +25,6 @@
 
 import base64
 import bs4
-import contextlib
 import datetime
 import errno
 from infoqscraper import client
@@ -37,34 +36,42 @@ import subprocess
 import tempfile
 import urllib
 
+
 def get_summaries(client, filter=None):
     """ Generate presentation summaries in a reverse chronological order.
 
      A filter class can be supplied to filter summaries or bound the fetching process.
     """
     try:
-        for page_index in xrange(1000):
-            rb = _RightBarPage(client, page_index)
-            for summary in rb.summaries():
-                if not filter or filter.filter(summary):
+        index = 0
+        while True:
+            rb = _RightBarPage(client, index)
+
+            summaries = rb.summaries()
+            if filter is not None:
+                summaries = filter.filter(summaries)
+
+            for summary in summaries:
                     yield summary
+
+            index += len(summaries)
     except StopIteration:
         pass
 
 
 class MaxPagesFilter(object):
-    """ A summary filter which bound the number fetched RightBarPage"""
+    """ A summary filter set an upper bound on the number fetched pages"""
 
     def __init__(self, max_pages):
         self.max_pages = max_pages
-        self.seen = 0
+        self.page_count = 0
 
-    def filter(self, presentation_summary):
-        if self.seen / _RightBarPage.ENTRIES_PER_PAGES >= self.max_pages:
+    def filter(self, presentation_summaries):
+        if self.page_count >= self.max_pages:
             raise StopIteration
 
-        self.seen += 1
-        return presentation_summary
+        self.page_count += 1
+        return presentation_summaries
 
 
 class Presentation(object):
@@ -100,9 +107,9 @@ class Presentation(object):
 
         def get_timecodes(pres_div):
             for script in pres_div.find_all('script'):
-                mo = re.search("var\s+TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
+                mo = re.search("TIMES\s?=\s?new\s+Array.?\((\d+(,\d+)+)\)", script.get_text())
                 if mo:
-                    return [int(tc) for tc in  mo.group(1).split(',')]
+                    return [int(tc) for tc in mo.group(1).split(',')]
 
         def get_slides(pres_div):
             for script in pres_div.find_all('script'):
@@ -176,6 +183,7 @@ class Presentation(object):
             self._metadata = metadata
 
         return self._metadata
+
 
 class Downloader(object):
 
@@ -331,13 +339,13 @@ class Downloader(object):
             # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
             # scaling issues with image2.
             cmd = [
-                    self.ffmpeg, "-v", "0",
-                    "-i", audio, 
-                    "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
-                    "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
-                    "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
-                    output
-                ]
+                self.ffmpeg, "-v", "0",
+                "-i", audio,
+                "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
+                "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
+                "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
+                output
+            ]
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
@@ -365,7 +373,7 @@ class Downloader(object):
         frame = 0
         for slide_index in xrange(len(slides)):
             src = slides[slide_index]
-            for remaining  in xrange(timecodes[slide_index], timecodes[slide_index+1]):
+            for remaining in xrange(timecodes[slide_index], timecodes[slide_index+1]):
                 dst = os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame)
                 try:
                     os.link(src, dst)
@@ -389,9 +397,6 @@ class _RightBarPage(object):
     This page lists all available presentations with pagination.
     """
 
-    # Number of presentation entries per page returned by rightbar.action
-    ENTRIES_PER_PAGES = 10
-
     def __init__(self, client, index):
         self.client = client
         self.index = index
@@ -402,7 +407,7 @@ class _RightBarPage(object):
         try:
             return self._soup
         except AttributeError:
-            url = client.get_url("/presentations/%s" % (self.index * _RightBarPage.ENTRIES_PER_PAGES))
+            url = client.get_url("/presentations/%s" % self.index)
             content = self.client.fetch_no_cache(url).decode('utf-8')
             self._soup = bs4.BeautifulSoup(content)
 
@@ -427,9 +432,8 @@ class _RightBarPage(object):
                 str = div.find('span', class_='author').get_text()
                 str = str.replace(u'\n',   u' ')
                 str = str.replace(u'\xa0', u' ')
-                str = str.split("on ")[-1]
-                str = str.strip()
-                return datetime.datetime.strptime(str, "%b %d, %Y")
+                match = re.search(r'on\s+(\w{3} [0-9]{1,2}, 20[0-9]{2})', str)
+                return datetime.datetime.strptime(match.group(1), "%b %d, %Y")
 
             def get_title(div):
                 return div.find('h2', class_='itemtitle').a['title']
@@ -441,7 +445,7 @@ class _RightBarPage(object):
                 'auth':  get_auth(div),
                 'date':  get_date(div),
                 'title': get_title(div),
-                }
+            }
 
         videos = self.soup.findAll('div', {'class': 'news_type_video'})
         return [create_summary(div) for div in videos]

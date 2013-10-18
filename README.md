@@ -12,7 +12,6 @@ the presenter but you don't get the slide.
 * download the resources (video, audio track, slides)
 * build a movie including the slides and the audio track from the resources
 
-The project is split in two part; a reusable library and a command line interface. 
 Only Python 2.6 or later is currently supported since PIL is not yet available for Python 3.
 
 # Install
@@ -93,7 +92,8 @@ The following python packages are required:
 1. BeautifulSoup4
 3. PIL
 
-To install them, you can run the following command:
+For normal users, they are automatically installed by `pip`. However, if you plan to hack `infoqscraper` you will
+most likely install them using the `requirements.txt` file:
 
         pip install -r requirements.txt
 
@@ -102,28 +102,33 @@ To install them, you can run the following command:
 `infoqscraper` is known to work on:
 
   - Arch Linux
-  - Fedora 17, 18
+  - Fedora 17, 18, 19
   - Ubuntu 12.04.2 LTS
   
-`ffmpeg` versions from 0.7 to 1.2 are supported. Users of Debian Squeeze or
+`ffmpeg` versions from 0.7 to 2+ are supported. Users of Debian Squeeze or
 Ubuntu 10.04 LTS must use a newer `ffmpeg` release than the one provided by
 their distro. `ffmpeg` 0.5 is too old to be supported (help wanted).
 
 ## Arch linux
 
-Packages `python2`, `swftools` and `ffmpeg` must be installed. 
+Packages `python2`, `swftools`, `rtmpdump` and `ffmpeg` must be installed. 
 
-`rtmpdump` is not available and must be installed manually.
-
-## Ubuntu 12.04 LTS (and later)
+## Ubuntu 12.04 LTS
 
 Packages `ffmpeg`, `rtmpdump` and `libavcodec-extra-53` must be installed.
 
 `swftools` is not available and must installed manually.
 
+## Ubuntu 12.10 and later
+
+Packages `ffmpeg`, `rtmpdump`, `swftools` and `libavcodec-extra-53` must be installed.
+
 ## Fedora
 
 Packages `ffmpeg`, `swftools` and `rtmpdump` from rpmfusion must be installed.
+
+`rtmpdump` from Fedora 19 is [currently broken](https://bugzilla.rpmfusion.org/show_bug.cgi?id=2969).
+You have to download rtmpdump [source code](http://rtmpdump.mplayerhq.hu/) and compile it.
 
 # Help
 
@@ -131,14 +136,3 @@ Feel free to contact me if you have any question or feature request.
 
 If you find this project useful, any contribution or feedback is welcome. If you are not a developer, improving
 the packaging, the documentation or fixing my broken English could be a good start.
-
-# Known issues
-
-  - Versions previous 0.0.4 are no longer able to parse the current InfoQ website. 
-    InfoQ changed the layout of the page in May 2013. You must upgrade to a newer 
-    version.
-  
-  - Version 0.0.4 is not compatible with BeautilfulSoup4 4.2.0. You should
-    downgrade to BeautifulSoup4 4.1.3 using the following command: 
-    `pip install beautifulsoup4==4.1.3`. Later versions fix this issue.
-
