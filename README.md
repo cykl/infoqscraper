@@ -104,6 +104,7 @@ most likely install them using the `requirements.txt` file:
   - Arch Linux
   - Fedora 17, 18, 19
   - Ubuntu 12.04.2 LTS
+  - Mac OS X 10.8.5
   
 `ffmpeg` versions from 0.7 to 2+ are supported. Users of Debian Squeeze or
 Ubuntu 10.04 LTS must use a newer `ffmpeg` release than the one provided by
@@ -129,6 +130,10 @@ Packages `ffmpeg`, `swftools` and `rtmpdump` from rpmfusion must be installed.
 
 `rtmpdump` from Fedora 19 is [currently broken](https://bugzilla.rpmfusion.org/show_bug.cgi?id=2969).
 You have to download rtmpdump [source code](http://rtmpdump.mplayerhq.hu/) and compile it.
+
+## Mac OS X
+
+Packages `pip`, `ffmpeg`, `swftools`, `rtmpdump`, can be installed via [ports](http://www.macports.org/).
 
 # Help
 
