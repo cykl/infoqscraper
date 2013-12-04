@@ -315,7 +315,7 @@ class PresentationModule(Module):
                     raise ArgumentError("%s not found. Please install required dependencies or specify the binary location" % cmd)
 
         def __extract_id(self, name):
-            mo = re.search("^https?://www.infoq.com/presentations/([^/])$", name)
+            mo = re.search("^https?://www.infoq.com/presentations/([^/#?]+)", name)
             if mo:
                 return mo.group(1)
 
