@@ -55,10 +55,19 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             self.assertEqual(e.returncode, 2)
             self.assertTrue(e.output.startswith(usage_prefix))
 
-    def test_download(self):
+    def test_download_id(self):
         tmp_dir = tempfile.mkdtemp()
         output_path = os.path.join(tmp_dir, "output.avi")
         cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertTrue(os.path.exists(output_path))
+        shutil.rmtree(tmp_dir)
+
+    def test_download_url(self):
+        tmp_dir = tempfile.mkdtemp()
+        output_path = os.path.join(tmp_dir, "output.avi")
+        url = "http://www.infoq.com/presentations/" + short_presentation_id
+        cmd = self.build_download_cmd([url, '-o', output_path])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(os.path.exists(output_path))
         shutil.rmtree(tmp_dir)
