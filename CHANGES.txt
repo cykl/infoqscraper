@@ -1,3 +1,7 @@
+0.0.7:
+  - Fix "presentation download URL"
+  - Add --overwrite/-y option to overwrite an already existing output file.
+
 0.0.6:
   - Fix several regressions due to markup changes
 

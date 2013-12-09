@@ -187,11 +187,13 @@ class Presentation(object):
 
 class Downloader(object):
 
-    def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender"):
+    def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender", overwrite=False):
         self.presentation = presentation
         self.ffmpeg = ffmpeg
         self.rtmpdump = rtmpdump
         self.swfrender = swfrender
+        self.overwrite = overwrite
+
 
     def __enter__(self):
         return self
@@ -338,12 +340,14 @@ class Downloader(object):
             #
             # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
             # scaling issues with image2.
+ 
             cmd = [
                 self.ffmpeg, "-v", "0",
                 "-i", audio,
                 "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
                 "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
                 "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
+                "-y" if self.overwrite else "-n",
                 output
             ]
             utils.check_output(cmd, stderr=subprocess.STDOUT)

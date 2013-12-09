@@ -55,12 +55,43 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             self.assertEqual(e.returncode, 2)
             self.assertTrue(e.output.startswith(usage_prefix))
 
-    def test_download(self):
+    def test_download_id(self):
         tmp_dir = tempfile.mkdtemp()
         output_path = os.path.join(tmp_dir, "output.avi")
         cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(os.path.exists(output_path))
+        shutil.rmtree(tmp_dir)
+
+    def test_download_url(self):
+        tmp_dir = tempfile.mkdtemp()
+        output_path = os.path.join(tmp_dir, "output.avi")
+        url = "http://www.infoq.com/presentations/" + short_presentation_id
+        cmd = self.build_download_cmd([url, '-o', output_path])
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertTrue(os.path.exists(output_path))
+        shutil.rmtree(tmp_dir)
+
+    def test_download_output_file_already_exist(self):
+        tmp_dir = tempfile.mkdtemp()
+        output_path = os.path.join(tmp_dir, "output.avi")
+        open(output_path, 'w').close()
+        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            utils.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertEquals(cm.exception.returncode, 1)
+        self.assertTrue(os.path.exists(output_path))
+        self.assertTrue(os.stat(output_path).st_size == 0)
+        shutil.rmtree(tmp_dir)
+
+    def test_download_overwrite_output_file(self):
+        tmp_dir = tempfile.mkdtemp()
+        output_path = os.path.join(tmp_dir, "output.avi")
+        open(output_path, 'w').close()
+        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path, '-y'])
+        utils.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertTrue(os.path.exists(output_path))
+        self.assertTrue(os.stat(output_path).st_size > 0)
         shutil.rmtree(tmp_dir)
 
     def assert_bad_command(self, args):
