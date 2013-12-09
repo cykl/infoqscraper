@@ -279,6 +279,7 @@ class PresentationModule(Module):
             parser.add_argument('-r', '--rtmpdump',  nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
             parser.add_argument('-o', '--output',    nargs="?", type=str, help='output file')
             parser.add_argument('-c', '--cache',     action="store_true", help="Enable disk caching.")
+            parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files.')
             parser.add_argument('identifier', help='name of the presentation or url')
             args = parser.parse_args(args)
 
@@ -298,6 +299,7 @@ class PresentationModule(Module):
                 "ffmpeg":    args.ffmpeg,
                 "rtmpdump":  args.rtmpdump,
                 "swfrender": args.swfrender,
+                "overwrite": True if args.overwrite else False,
                 }
 
             with presentation.Downloader(pres, **kwargs) as builder:
