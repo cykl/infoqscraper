@@ -1,3 +1,7 @@
+0.0.8:
+  - Fix a regression introduced by 0.0.7, ffmpeg 0.8 does not support -n
+  - Remove "... presentation -c" since redundant witch "infoqscraper -c ..."
+
 0.0.7:
   - Fix "presentation download URL"
   - Add --overwrite/-y option to overwrite an already existing output file.
