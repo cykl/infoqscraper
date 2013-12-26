@@ -337,6 +337,7 @@ class Downloader(object):
             #   - Do not use libx264, not available on old Ubuntu/Debian
             #   - Do not use -threads auto, not available on 0.8.*
             #   - Old releases are very picky regarding arguments position
+            #   - -n is not supported on 0.8
             #
             # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
             # scaling issues with image2.
@@ -346,10 +347,16 @@ class Downloader(object):
                 "-i", audio,
                 "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
                 "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
-                "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M",
-                "-y" if self.overwrite else "-n",
-                output
+                "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M"
             ]
+            if self.overwrite:
+                cmd.append("-y")
+            elif os.path.exists(output):
+                # Handle already existing file manually since nor -n nor -nostdin is available on 0.8
+                raise Exception("File %s already exist and --overwrite not specified")
+
+            cmd.append(output)
+
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
