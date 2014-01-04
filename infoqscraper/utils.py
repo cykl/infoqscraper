@@ -21,13 +21,9 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import os
 import subprocess
 import sys
 
-import Image
-import subprocess
-import tempfile
 
 if sys.hexversion >= 0x02070000:
     check_output = subprocess.check_output
@@ -90,19 +86,4 @@ class SwfConverter(object):
                             u"\tExit status: %s.\n\tOutput:\n%s" % (swf_path, e.returncode, e.output))
 
         return png_path
-
-    def to_jpeg(self, swf_path, jpg_path=None):
-        """ Convert a slide into a PNG image.
-
-        OSError is raised if swfrender is not available.
-        An exception is raised if image cannot be created.
-        """
-        if not jpg_path:
-            jpg_path = swf_path.replace(".swf", ".jpg")
-
-        png_path = tempfile.mktemp(suffix=".png")
-        self.to_png(swf_path, png_path)
-        Image.open(png_path).convert('RGB').save(jpg_path, 'jpeg')
-        os.remove(png_path)
-        return jpg_path
 

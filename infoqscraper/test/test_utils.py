@@ -67,9 +67,3 @@ class TestSwfConverter(unittest2.TestCase):
         converter.to_png(swf_path, png_path)
         stat_info = os.stat(png_path)
         self.assertGreater(stat_info.st_size, 1000)
-
-        # SWF -> JPEG
-        jpg_path = swf_path.replace('.swf', '.jpg')
-        converter.to_jpeg(swf_path, jpg_path)
-        stat_info = os.stat(jpg_path)
-        self.assertGreater(stat_info.st_size, 1000)

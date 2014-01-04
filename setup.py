@@ -29,7 +29,6 @@ import sys
 install_requires=[
     "BeautifulSoup4",
     "html5lib",
-    "PIL",
 ]
 if sys.version_info < (2, 7):
     install_requires += ['argparse']

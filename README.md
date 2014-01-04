@@ -12,7 +12,7 @@ the presenter but you don't get the slide.
 * download the resources (video, audio track, slides)
 * build a movie including the slides and the audio track from the resources
 
-Only Python 2.6 or later is currently supported since PIL is not yet available for Python 3.
+Only Python 2.6 or later is currently supported.
 
 # Install
 
@@ -108,7 +108,6 @@ Use `infoqscraper presentation download -h` to learn more.
 The following python packages are required:
 
 1. BeautifulSoup4
-3. PIL
 
 For normal users, they are automatically installed by `pip`. However, if you plan to hack `infoqscraper` you will
 most likely install them using the `requirements.txt` file:

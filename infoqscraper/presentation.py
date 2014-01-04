@@ -407,7 +407,7 @@ class Downloader(object):
 
         def convert(slide):
             if slide.endswith("swf"):
-                return swf_render.to_jpeg(slide)
+                return swf_render.to_png(slide)
             elif slide.endswith("jpg"):
                 return slide
             else:
