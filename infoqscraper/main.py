@@ -278,7 +278,9 @@ class PresentationModule(Module):
             parser.add_argument('-s', '--swfrender', nargs="?", type=str, default="swfrender", help='swfrender binary')
             parser.add_argument('-r', '--rtmpdump',  nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
             parser.add_argument('-o', '--output',    nargs="?", type=str, help='output file')
-            parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files.')
+            parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files')
+            parser.add_argument('-t', '--type',      nargs="?", type=str, default="legacy",
+                                help='output type: legacy, h264, h264_overlay')
             parser.add_argument('identifier', help='name of the presentation or url')
             args = parser.parse_args(args)
 
@@ -298,12 +300,13 @@ class PresentationModule(Module):
                 "ffmpeg":    args.ffmpeg,
                 "rtmpdump":  args.rtmpdump,
                 "swfrender": args.swfrender,
-                "overwrite": True if args.overwrite else False,
-                }
+                "overwrite": args.overwrite,
+                "type":      args.type,
+            }
 
-            with presentation.Downloader(pres, **kwargs) as builder:
+            with presentation.Downloader(pres, output, **kwargs) as builder:
                 try:
-                    builder.create_presentation(output_path=output)
+                    builder.create_presentation()
                 except client.DownloadError as e:
                     return warn("Failed to create presentation %s: %s" % (output, e), 2)
 

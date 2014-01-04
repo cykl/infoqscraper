@@ -55,10 +55,18 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             self.assertEqual(e.returncode, 2)
             self.assertTrue(e.output.startswith(usage_prefix))
 
-    def test_download_id(self):
+    def test_download_h264(self):
         tmp_dir = tempfile.mkdtemp()
         output_path = os.path.join(tmp_dir, "output.avi")
-        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path])
+        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path, '-t', 'h264'])
+        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        self.assertTrue(os.path.exists(output_path))
+        shutil.rmtree(tmp_dir)
+
+    def test_download_h264_overlay(self):
+        tmp_dir = tempfile.mkdtemp()
+        output_path = os.path.join(tmp_dir, "output.avi")
+        cmd = self.build_download_cmd([short_presentation_id, '-o', output_path, '-t', 'h264_overlay'])
         output = utils.check_output(cmd, stderr=subprocess.STDOUT)
         self.assertTrue(os.path.exists(output_path))
         shutil.rmtree(tmp_dir)

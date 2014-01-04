@@ -187,13 +187,15 @@ class Presentation(object):
 
 class Downloader(object):
 
-    def __init__(self, presentation, ffmpeg="ffmpeg", rtmpdump="rtmpdump", swfrender="swfrender", overwrite=False):
+    def __init__(self, presentation, output, **kwargs):
         self.presentation = presentation
-        self.ffmpeg = ffmpeg
-        self.rtmpdump = rtmpdump
-        self.swfrender = swfrender
-        self.overwrite = overwrite
+        self.output = output
 
+        self.ffmpeg = kwargs['ffmpeg']
+        self.rtmpdump = kwargs['rtmpdump']
+        self.swfrender = kwargs['swfrender']
+        self.overwrite = kwargs['overwrite']
+        self.type = kwargs['type']
 
     def __enter__(self):
         return self
@@ -216,7 +218,7 @@ class Downloader(object):
     def _video_path(self):
         return os.path.join(self.tmp_dir, 'video.avi')
 
-    def create_presentation(self, output_path=None):
+    def create_presentation(self):
         """ Create the presentation.
 
         The audio track is mixed with the slides. The resulting file is saved as output_path
@@ -235,7 +237,7 @@ class Downloader(object):
         # Create one frame per second using the timecode information
         frame_pattern = self._prepare_frames(jpg_slides)
         # Now Build the video file
-        output = self._assemble(audio, frame_pattern, output=output_path)
+        output = self._assemble(audio, frame_pattern)
 
         return output
 
@@ -255,7 +257,7 @@ class Downloader(object):
         Raises:
             DownloadFailedException: If the video cannot be downloaded.
         """
-        rvideo_path =  self.presentation.metadata['video_path']
+        rvideo_path = self.presentation.metadata['video_path']
 
         if self.presentation.client.cache:
             video_path = self.presentation.client.cache.get_path(rvideo_path)
@@ -327,43 +329,78 @@ class Downloader(object):
 
         return self.presentation.client.download(self.presentation.metadata['mp3'], dir, filename=filename)
 
-    def _assemble(self, audio, frame_pattern, output=None):
-        if not output:
-            output = os.path.join(self.tmp_dir, "output.avi")
+    def _ffmpeg_legacy(self, audio, frame_pattern):
+        # Try to be compatible as much as possible with old ffmpeg releases (>= 0.7)
+        #   - Do not use new syntax options
+        #   - Do not use libx264, not available on old Ubuntu/Debian
+        #   - Do not use -threads auto, not available on 0.8.*
+        #   - Old releases are very picky regarding arguments position
+        #   - -n is not supported on 0.8
+        #
+        # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
+        # scaling issues with image2.
+        cmd = [
+            self.ffmpeg, "-v", "0",
+            "-i", audio,
+            "-f", "image2", "-r", "1", "-s", "hd720", "-i", frame_pattern,
+            "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
+            "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M", "-y", self.output
+        ]
+
+        if not self.overwrite and os.path.exists(self.output):
+            # Handle already existing file manually since nor -n nor -nostdin is available on 0.8
+            raise Exception("File %s already exist and --overwrite not specified" % self.output)
+
+        return cmd
+
+    def _ffmpeg_h264(self, audio, frame_pattern):
+        return [
+            self.ffmpeg, "-v", "error",
+            "-i", audio,
+            "-r", "1", "-i", frame_pattern,
+            "-c:a", "copy",
+            "-c:v", "libx264", "-profile:v", "baseline", "-preset", "ultrafast", "-level", "3.0", "-crf", "28",
+            "-s", "1280x720",
+            "-y" if self.overwrite else "-n",
+            self.output
+        ]
+
+    def _ffmpeg_h264_overlay(self, audio, frame_pattern):
+        return [
+            self.ffmpeg, "-v", "error",
+            "-i", audio,
+            "-f", "image2", "-r", "1", "-s", "hd720", "-i", frame_pattern,
+            "-filter_complex",
+            "".join([
+                "color=size=1280x720:c=Black [base];",
+                "[0:v] setpts=PTS-STARTPTS, scale=320x240 [speaker];",
+                "[1:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[slides];",
+                "[base][slides]  overlay=shortest=1:x=0:y=0 [tmp1];",
+                "[tmp1][speaker] overlay=shortest=1:x=main_w-320:y=main_h-240",
+                ]),
+            "-acodec", "libmp3lame", "-ab", "92k",
+            "-vcodec", "libx264", "-profile:v", "baseline", "-preset", "fast", "-level", "3.0", "-crf", "28",
+            "-y" if self.overwrite else "-n",
+            self.output
+        ]
+
+    def _assemble(self, audio, frame_pattern):
+        if self.type == "legacy":
+            cmd = self._ffmpeg_legacy(audio, frame_pattern)
+        elif self.type == "h264":
+            cmd = self._ffmpeg_h264(audio, frame_pattern)
+        elif self.type == "h264_overlay":
+            cmd = self._ffmpeg_h264_overlay(audio, frame_pattern)
+        else:
+            raise Exception("Unknown output type %s" % self.type)
 
         try:
-            # Try to be compatible as much as possible with old ffmpeg releases (>= 0.7)
-            #   - Do not use new syntax options
-            #   - Do not use libx264, not available on old Ubuntu/Debian
-            #   - Do not use -threads auto, not available on 0.8.*
-            #   - Old releases are very picky regarding arguments position
-            #   - -n is not supported on 0.8
-            #
-            # 0.5 (Debian Squeeze & Ubuntu 10.4) is not supported because of
-            # scaling issues with image2.
- 
-            cmd = [
-                self.ffmpeg, "-v", "0",
-                "-i", audio,
-                "-f", "image2", "-r", "1", "-s", "hd720","-i", frame_pattern,
-                "-map", "1:0", "-acodec", "libmp3lame", "-ab", "128k",
-                "-map", "0:1", "-vcodec", "mpeg4", "-vb", "2M"
-            ]
-            if self.overwrite:
-                cmd.append("-y")
-            elif os.path.exists(output):
-                # Handle already existing file manually since nor -n nor -nostdin is available on 0.8
-                raise Exception("File %s already exist and --overwrite not specified")
-
-            cmd.append(output)
-
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise Exception("Failed to create final movie as %s.\n"
                             "\tExit code: %s\n"
                             "\tOutput:\n%s"
-                            % (output, e.returncode, e.output))
-        return output
+                            % (self.output, e.returncode, e.output))
 
     def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)
