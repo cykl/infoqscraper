@@ -221,38 +221,27 @@ class Downloader(object):
     def create_presentation(self):
         """ Create the presentation.
 
-        The audio track is mixed with the slides. The resulting file is saved as output_path
+        The audio track is mixed with the slides. The resulting file is saved as self.output
 
         DownloadFailedException is raised if some resources cannot be fetched.
         """
-        try:
-            audio = self.download_mp3()
-        except client.DownloadError:
-            audio = self.download_video()
-
+        video = self.download_video()
         raw_slides = self.download_slides()
 
-        # Convert slides into JPG since ffmpeg does not support SWF
-        jpg_slides = self._convert_slides(raw_slides)
-        # Create one frame per second using the timecode information
-        frame_pattern = self._prepare_frames(jpg_slides)
-        # Now Build the video file
-        output = self._assemble(audio, frame_pattern)
+        # ffmpeg does not support SWF
+        png_slides = self._convert_slides(raw_slides)
+        # Create one frame per second using the time code information
+        frame_pattern = self._prepare_frames(png_slides)
 
-        return output
+        return self._assemble(video, frame_pattern)
 
-    def download_video(self, output_path=None):
+    def download_video(self):
         """Downloads the video.
 
         If self.client.cache_enabled is True, then the disk cache is used.
 
-        Args:
-            output_path: Where to save the video if not already cached. A
-                         file in temporary directory is used if None.
-
         Returns:
-            The path where the video has been saved. Please note that it can not be equals
-            to output_path if the video is in cache
+            The path where the video has been saved.
 
         Raises:
             DownloadFailedException: If the video cannot be downloaded.
@@ -262,19 +251,15 @@ class Downloader(object):
         if self.presentation.client.cache:
             video_path = self.presentation.client.cache.get_path(rvideo_path)
             if not video_path:
-                video_path = self.download_video_no_cache(output_path=output_path)
+                video_path = self.download_video_no_cache()
                 self.presentation.client.cache.put_path(rvideo_path, video_path)
         else:
-            video_path = self.download_video_no_cache(output_path=output_path)
+            video_path = self.download_video_no_cache()
 
         return video_path
 
-    def download_video_no_cache(self, output_path=None):
+    def download_video_no_cache(self):
         """Downloads the video.
-
-        Args:
-            output_path: Where to save the video. A file in temporary directory is
-                         used if None.
 
         Returns:
             The path where the video has been saved.
@@ -282,52 +267,30 @@ class Downloader(object):
         Raises:
             DownloadFailedException: If the video cannot be downloaded.
         """
-        video_url  = self.presentation.metadata['video_url']
+        video_url = self.presentation.metadata['video_url']
         video_path = self.presentation.metadata['video_path']
 
-        if not output_path:
-            output_path = self._video_path
-
         try:
-            cmd = [self.rtmpdump, '-q', '-r', video_url, '-y', video_path, "-o", output_path]
+            cmd = [self.rtmpdump, '-q', '-r', video_url, '-y', video_path, "-o", self._video_path]
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             try:
-                os.unlink(output_path)
+                os.unlink(self._video_path)
             except OSError:
                 pass
-            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s" % (video_url, e.returncode))
+            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s"
+                                       % (video_url, e.returncode))
 
-        return output_path
+        return self._video_path
 
-    def download_slides(self, output_dir=None):
+    def download_slides(self):
         """ Download all SWF slides.
 
-        If output_dir is specified slides are downloaded at this location. Otherwise the
-        tmp_dir is used. The location of the slides files are returned.
+        The location of the slides files are returned.
 
         A DownloadFailedException is raised if at least one of the slides cannot be download..
         """
-        if not output_dir:
-            output_dir = self.tmp_dir
-
-        return self.presentation.client.download_all(self.presentation.metadata['slides'], output_dir)
-
-    def download_mp3(self, output_path=None):
-        """ Download the audio track.
-
-        If output_path is specified the audio track is downloaded at this location. Otherwise
-        the tmp_dir is used. The location of the file is returned.
-
-        A DownloadFailedException is raised if the file cannot be downloaded.
-        """
-        if not output_path:
-            output_path = self._audio_path
-
-        dir = os.path.dirname(output_path)
-        filename = os.path.basename(output_path)
-
-        return self.presentation.client.download(self.presentation.metadata['mp3'], dir, filename=filename)
+        return self.presentation.client.download_all(self.presentation.metadata['slides'], self.tmp_dir)
 
     def _ffmpeg_legacy(self, audio, frame_pattern):
         # Try to be compatible as much as possible with old ffmpeg releases (>= 0.7)
@@ -359,7 +322,8 @@ class Downloader(object):
             "-i", audio,
             "-r", "1", "-i", frame_pattern,
             "-c:a", "copy",
-            "-c:v", "libx264", "-profile:v", "baseline", "-preset", "ultrafast", "-level", "3.0", "-crf", "28",
+            "-c:v", "libx264", "-profile:v", "baseline", "-preset", "ultrafast", "-level", "3.0",
+            "-crf", "28", "-pix_fmt", "yuv420p",
             "-s", "1280x720",
             "-y" if self.overwrite else "-n",
             self.output
@@ -415,12 +379,12 @@ class Downloader(object):
 
         return [convert(s) for s in slides]
 
-    def _prepare_frames(self, slides, ext="jpg"):
+    def _prepare_frames(self, slides):
         timecodes = self.presentation.metadata['timecodes']
+        ext = os.path.splitext(slides[0])[1]
 
         frame = 0
-        for slide_index in xrange(len(slides)):
-            src = slides[slide_index]
+        for slide_index, src in enumerate(slides):
             for remaining in xrange(timecodes[slide_index], timecodes[slide_index+1]):
                 dst = os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame)
                 try:
@@ -436,7 +400,7 @@ class Downloader(object):
                     
                 frame += 1
 
-        return os.path.join(self.tmp_dir, "frame-%04d." +  ext)
+        return os.path.join(self.tmp_dir, "frame-%04d." + ext)
 
 
 class _RightBarPage(object):
