@@ -34,7 +34,10 @@ import re
 import shutil
 import subprocess
 import tempfile
-import urllib
+
+import six
+from six.moves import http_cookiejar
+from six.moves import urllib
 
 
 def get_summaries(client, filter=None):
@@ -96,8 +99,8 @@ class Presentation(object):
 
         def get_date(pres_div):
             str = pres_div.find('span', class_='author_general').contents[2]
-            str = str.replace(u'\n',   u' ')
-            str = str.replace(u'\xa0', u' ')
+            str = str.replace('\n',   ' ')
+            str = str.replace(six.u('\xa0'), ' ')
             str = str.split("on ")[-1]
             str = str.strip()
             return datetime.datetime.strptime(str, "%b %d, %Y")
@@ -122,7 +125,7 @@ class Presentation(object):
                 mo = re.search('var jsclassref = \'(.*)\';', script.get_text())
                 if mo:
                     b64 = mo.group(1)
-                    path = base64.b64decode(b64)
+                    path = base64.b64decode(b64).decode('utf-8')
                     # Older presentations use flv and the video path does not contain
                     # the extension. Newer presentations use mp4 and include the extension.
                     if path.endswith(".mp4"):
@@ -145,7 +148,7 @@ class Presentation(object):
             # The markup is not the same if authenticated or not
             form = pres_div.find('form', id="pdfForm")
             if form:
-                metadata['pdf'] = client.get_url('/pdfdownload.action?filename=') + urllib.quote(form.input['value'], safe='')
+                metadata['pdf'] = client.get_url('/pdfdownload.action?filename=') + urllib.parse.quote(form.input['value'], safe='')
             else:
                 a = pres_div.find('a', class_='link-slides')
                 if a:
@@ -155,7 +158,7 @@ class Presentation(object):
             # The markup is not the same if authenticated or not
             form = bc3.find('form', id="mp3Form")
             if form:
-                metadata['mp3'] = client.get_url('/mp3download.action?filename=') + urllib.quote(form.input['value'], safe='')
+                metadata['mp3'] = client.get_url('/mp3download.action?filename=') + urllib.parse.quote(form.input['value'], safe='')
             else:
                 a = bc3.find('a', class_='link-mp3')
                 if a:
@@ -170,7 +173,7 @@ class Presentation(object):
                 'auth' : get_author(pres_div),
                 'timecodes': get_timecodes(self.soup),
                 'slides': get_slides(self.soup),
-                'video_url': "rtmpe://video.infoq.com/cfx/st/",
+                'video_url': six.u("rtmpe://video.infoq.com/cfx/st/"),
                 'video_path': get_video(self.soup),
                 'bio':        get_bio(pres_div),
                 'summary':    get_summary(pres_div),
@@ -278,8 +281,8 @@ class Downloader(object):
                 os.unlink(self._video_path)
             except OSError:
                 pass
-            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s"
-                                       % (video_url, e.returncode))
+            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s.\n\tOutput:\n%s"
+                                       % (video_url, e.returncode, e.output))
 
         return self._video_path
 
@@ -385,7 +388,7 @@ class Downloader(object):
 
         frame = 0
         for slide_index, src in enumerate(slides):
-            for remaining in xrange(timecodes[slide_index], timecodes[slide_index+1]):
+            for remaining in range(timecodes[slide_index], timecodes[slide_index+1]):
                 dst = os.path.join(self.tmp_dir, "frame-{0:04d}." + ext).format(frame)
                 try:
                     os.link(src, dst)
@@ -442,8 +445,8 @@ class _RightBarPage(object):
 
             def get_date(div):
                 str = div.find('span', class_='author').get_text()
-                str = str.replace(u'\n',   u' ')
-                str = str.replace(u'\xa0', u' ')
+                str = str.replace('\n',   ' ')
+                str = str.replace(six.u('\xa0'), ' ')
                 match = re.search(r'on\s+(\w{3} [0-9]{1,2}, 20[0-9]{2})', str)
                 return datetime.datetime.strptime(match.group(1), "%b %d, %Y")
 

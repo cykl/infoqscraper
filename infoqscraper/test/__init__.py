@@ -47,5 +47,5 @@ def use_cache(func):
 
 
 def get_latest_presentation(client):
-    summary = presentation.get_summaries(client).next()
+    summary = next(presentation.get_summaries(client))
     return presentation.Presentation(client, summary['id'])

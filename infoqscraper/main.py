@@ -25,6 +25,7 @@ import argparse
 import os
 import pkg_resources
 import re
+import six
 import subprocess
 import sys
 
@@ -102,7 +103,7 @@ class CacheModule(Module):
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, self.name))
-        parser.add_argument('command', choices = self.commands.keys())
+        parser.add_argument('command', choices = list(self.commands.keys()))
         parser.add_argument('command_args', nargs=argparse.REMAINDER)
         args = parser.parse_args(args=args)
 
@@ -141,15 +142,15 @@ class CacheModule(Module):
             infoq_client.enable_cache()
             size = infoq_client.cache.size
             human_size = self.__humanize(size, 2)
-            print "%s" % human_size
+            print("%s" % human_size)
 
         def __humanize(self, bytes, precision=2):
             suffixes = (
-                (1 << 50L, 'PB'),
-                (1 << 40L, 'TB'),
-                (1 << 30L, 'GB'),
-                (1 << 20L, 'MB'),
-                (1 << 10L, 'kB'),
+                (1 << 50, 'PB'),
+                (1 << 40, 'TB'),
+                (1 << 30, 'GB'),
+                (1 << 20, 'MB'),
+                (1 << 10, 'kB'),
                 (1, 'bytes')
             )
             if bytes == 1:
@@ -178,7 +179,7 @@ class PresentationModule(Module):
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, PresentationModule.name))
-        parser.add_argument('command', choices = self.commands.keys())
+        parser.add_argument('command', choices = list(self.commands.keys()))
         parser.add_argument('command_args', nargs=argparse.REMAINDER)
         args = parser.parse_args(args=args)
 
@@ -219,7 +220,7 @@ class PresentationModule(Module):
                     raise StopIteration
 
                 s = super(PresentationModule.PresentationList._Filter, self).filter(p_summaries)
-                s = filter(self._do_match, s)
+                s = list(filter(self._do_match, s))
                 s = s[:(self.max_hits - self.hits)]  # Remove superfluous items
                 self.hits += len(s)
                 return s
@@ -258,15 +259,15 @@ class PresentationModule(Module):
 
             index = 0
             for result in results:
-                print
-                print u"{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
-                print u"     Id: {0}".format(result['id'])
-                print u"     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8))
+                print("")
+                print("{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d")))
+                print("     Id: {0}".format(result['id']))
+                print("     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8)))
                 index += 1
 
         def __short_output(self, results):
             for result in results:
-                print result['id']
+                print(result['id'])
 
     class PresentationDownload(Command):
         """Download a presentation"""
@@ -329,11 +330,11 @@ class PresentationModule(Module):
             if output:
                 return output
 
-            return u"%s.avi" % id
+            return "%s.avi" % id
 
 
 def warn(str, code=1):
-    print >> sys.stderr, str
+    six.print_(str, file=sys.stderr)
     return code
 
 
@@ -353,7 +354,7 @@ def main():
     parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
     parser.add_argument('-V', '--version'  , action="version",    help="Display version",
                         version="%s %s" % (app_name, app_version))
-    parser.add_argument('module', choices=modules.keys())
+    parser.add_argument('module', choices=list(modules.keys()))
     parser.add_argument('module_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 

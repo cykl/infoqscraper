@@ -12,7 +12,7 @@ the presenter but you don't get the slide.
 * download the resources (video, audio track, slides)
 * build a movie including the slides and the audio track from the resources
 
-Only Python 2.6 or later is currently supported.
+Python 2.6 or later are supported (including Python 3).
 
 # Install
 

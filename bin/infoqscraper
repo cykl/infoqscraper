@@ -24,23 +24,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-Portable shebang wrapper for Python 2.
+Infoqscraper main wrapper
+"""
 
-Some distro like Arch Linux link python to python3. Some other like Debian or
-OS X do not have a python2 symlink. It makes almost impossible to start a
-python2 using the shebang mechanism.
-
-This wrapper use the python symlink and its code is compatible with python2 and
-python3. If python3 is detected at runtime then it automaticaly switch to
-python2.
-""" 
-import os
 import sys
- 
-if sys.version_info[0] != 2:
-    sys.argv.insert(0, "python2")
-    os.execl("/usr/bin/env", "/usr/bin/env", *sys.argv)
- 
 
 from infoqscraper import main
 sys.exit(main.main())

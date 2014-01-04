@@ -21,38 +21,37 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import bintest
 import subprocess
 import re
 
 from infoqscraper import utils
 
+from bintest.infoqscraper import TestInfoqscraper
+
 usage_prefix = "usage: infoqscraper cache size"
 
-class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
-    def build_size_cmd(self, args):
-        return self.build_cmd([]) + ['cache', 'size'] + args
+class TestArguments(TestInfoqscraper):
+
+    def setUp(self):
+        self.default_cmd = ["cache", "size"]
 
     def test_help(self):
-        cmd =  self.build_size_cmd(['--help'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd + ["--help"])
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_size(self):
         # TODO: Find a better test
         # We could use du -sh then compare its output to our.
-        cmd =  self.build_size_cmd([])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT).strip()
+        output = self.run_cmd(self.default_cmd)
         self.assertIsNotNone(re.match('\d{1,4}\.\d{2} \w{2,5}', output))
 
     def test_extra_arg(self):
-        cmd = self.build_size_cmd(["extra_args"])
         try:
-            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+            self.run_cmd(self.default_cmd + ["extra_args"])
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
-            print e.output
-            self.assertTrue(e.output.startswith(usage_prefix))
+            print(e.output)
+            self.assertTrue(e.output.decode('utf8').startswith(usage_prefix))
 

@@ -21,18 +21,21 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import os
+import shutil
+import subprocess
+import tempfile
+
 from infoqscraper import client
 from infoqscraper import presentation
 from infoqscraper import test
 from infoqscraper import utils
-import os
-import shutil
-import tempfile
-import unittest2
-import subprocess
+
+from infoqscraper.test.compat import unittest
 
 
-class TestCheckOutputBackport(unittest2.TestCase):
+class TestCheckOutputBackport(unittest.TestCase):
 
     def test_ok(self):
         utils.check_output(["python", "-h"])
@@ -45,7 +48,7 @@ class TestCheckOutputBackport(unittest2.TestCase):
             self.assertEquals(e.returncode, 2)
 
 
-class TestSwfConverter(unittest2.TestCase):
+class TestSwfConverter(unittest.TestCase):
 
     def setUp(self):
         self.iq = client.InfoQ()

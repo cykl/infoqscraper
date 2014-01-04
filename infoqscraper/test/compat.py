@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012, Clément MATHIEU
+# Copyright (c) 2014, Clément MATHIEU
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -22,32 +22,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import subprocess
-
-from bintest.infoqscraper import TestInfoqscraper
-
-usage_prefix = "usage: infoqscraper ["
-
-
-class TestTestHelpers(TestInfoqscraper):
-
-    def test_infoqscraper_path(self):
-        self.assertTrue(os.path.exists(self.infoqscraper_path))
-
-
-class TestArguments(TestInfoqscraper):
-
-    def test_no_arg(self):
-        try:
-            self.run_cmd([])
-            self.fail("Exception expected")
-        except subprocess.CalledProcessError as e:
-            self.assertEqual(e.returncode, 2)
-            print(e.output)
-            self.assertTrue(e.output.decode('utf8').startswith(usage_prefix))
-
-    def test_help(self):
-        output = self.run_cmd(["--help"])
-        self.assertTrue(output.startswith(usage_prefix))
-
+try:
+     import unittest2 as unittest
+except ImportError:
+     import unittest

@@ -21,11 +21,17 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import os
-import sys
-import unittest2
 
-class TestInfoqscraper(unittest2.TestCase):
+import os
+import subprocess
+import sys
+
+from infoqscraper import utils
+
+from infoqscraper.test.compat import unittest
+
+
+class TestInfoqscraper(unittest.TestCase):
 
     @property
     def infoqscraper_path(self):
@@ -33,3 +39,7 @@ class TestInfoqscraper(unittest2.TestCase):
 
     def build_cmd(self, args):
         return [sys.executable, self.infoqscraper_path] + args
+
+    def run_cmd(self, args):
+        cmd = self.build_cmd(args)
+        return utils.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
