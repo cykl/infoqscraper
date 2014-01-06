@@ -26,7 +26,6 @@ import os
 import subprocess
 import sys
 
-from infoqscraper import utils
 
 from infoqscraper.test.compat import unittest
 
@@ -42,4 +41,4 @@ class TestInfoqscraper(unittest.TestCase):
 
     def run_cmd(self, args):
         cmd = self.build_cmd(args)
-        return utils.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')

@@ -163,5 +163,3 @@ class XDGCache(object):
                 fp = os.path.join(dir_path, f)
                 total_size += os.path.getsize(fp)
         return total_size
-
-        pass

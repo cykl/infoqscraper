@@ -28,7 +28,8 @@ import os
 from six.moves import http_cookiejar
 from six.moves import urllib
 
-from infoqscraper import cache, AuthenticationError, DownloadError
+from infoqscraper import cache
+from infoqscraper import  AuthenticationError, DownloadError
 
 
 def get_url(path, scheme="http"):

@@ -21,10 +21,12 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 from functools import wraps
-from infoqscraper import cache
-from infoqscraper import presentation
 import os
+
+from infoqscraper import cache
+from infoqscraper import scrap
 
 try:
     USERNAME = os.environ['INFOQ_USERNAME']
@@ -47,5 +49,5 @@ def use_cache(func):
 
 
 def get_latest_presentation(client):
-    summary = next(presentation.get_summaries(client))
-    return presentation.Presentation(client, summary['id'])
+    summary = next(scrap.get_summaries(client))
+    return scrap.Presentation(client, summary['id'])

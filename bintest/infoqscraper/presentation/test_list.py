@@ -23,7 +23,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from infoqscraper import client
-from infoqscraper import presentation
+from infoqscraper import scrap
 
 from bintest.infoqscraper import TestInfoqscraper
 
@@ -56,7 +56,7 @@ class TestArguments(TestInfoqscraper):
 
     def test_pattern(self):
         infoq_client = client.InfoQ(cache_enabled=True)
-        summary = next(presentation.get_summaries(infoq_client))
+        summary = next(scrap.get_summaries(infoq_client))
 
         # Nowadays, the /presentations page contains more than 10 entries
         output = self.run_cmd(self.default_cmd + ["-p", summary['title']])

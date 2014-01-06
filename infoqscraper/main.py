@@ -29,8 +29,10 @@ import six
 import subprocess
 import sys
 
-from infoqscraper import client, DownloadError, ConversionError
-from infoqscraper import presentation
+from infoqscraper import client
+from infoqscraper import convert
+from infoqscraper import scrap
+from infoqscraper import DownloadError, ConversionError
 
 app_name = "infoqscraper"
 try:
@@ -195,7 +197,7 @@ class PresentationModule(Module):
         """List available presentations."""
         name = "list"
 
-        class _Filter(presentation.MaxPagesFilter):
+        class _Filter(scrap.MaxPagesFilter):
             """Filter summary according to a pattern.
 
             The number of results and fetched pages can be bounded.
@@ -246,7 +248,7 @@ class PresentationModule(Module):
             args = parser.parse_args(args=args)
 
             filter = PresentationModule.PresentationList._Filter(pattern=args.pattern, max_hits=args.max_hits, max_pages=args.max_pages)
-            summaries = presentation.get_summaries(infoq_client, filter=filter)
+            summaries = scrap.get_summaries(infoq_client, filter=filter)
             if args.short:
                 self.__short_output(summaries)
             else:
@@ -293,7 +295,7 @@ class PresentationModule(Module):
             output = self.__chose_output(args.output, id)
 
             try:
-                pres = presentation.Presentation(infoq_client, id)
+                pres = scrap.Presentation(infoq_client, id)
             except client.DownloadError as e:
                 return warn("Presentation %s not found. Please check your id or url" % id, 2)
 
@@ -305,7 +307,7 @@ class PresentationModule(Module):
                 "type":      args.type,
             }
 
-            with presentation.Downloader(pres, output, **kwargs) as builder:
+            with convert.Converter(pres, output, **kwargs) as builder:
                 try:
                     builder.create_presentation()
                 except (DownloadError, ConversionError) as e:

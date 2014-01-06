@@ -33,3 +33,31 @@ class DownloadError(Exception):
 
 class AuthenticationError(Exception):
     pass
+
+import sys
+import subprocess
+
+# If Python 2.6, monkey patch subprocess module to add check_output
+# Not sure if we really should do this...
+if sys.hexversion < 0x02070000:
+    def _check_output_backport(*popenargs, **kwargs):
+        r"""Run command with arguments and return its output as a byte string.
+
+        Backported from Python 2.7 as it's implemented as pure python on stdlib.
+
+        >>> check_output(['/usr/bin/python', '--version'])
+        Python 2.6.2
+        """
+        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            cmd = kwargs.get("args")
+            if cmd is None:
+                cmd = popenargs[0]
+            error = subprocess.CalledProcessError(retcode, cmd)
+            error.output = output
+            raise error
+        return output
+
+    subprocess.check_output = _check_output_backport

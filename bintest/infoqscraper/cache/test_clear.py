@@ -27,7 +27,6 @@ import subprocess
 import tempfile
 
 from infoqscraper import client
-from infoqscraper import utils
 
 from bintest.infoqscraper import TestInfoqscraper
 

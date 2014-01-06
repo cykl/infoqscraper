@@ -26,7 +26,7 @@ import datetime
 import six
 
 from infoqscraper import client
-from infoqscraper import presentation
+from infoqscraper import scrap
 from infoqscraper import test
 
 from infoqscraper.test.compat import unittest
@@ -57,7 +57,7 @@ class TestSummaries(unittest.TestCase):
 
     @test.use_cache
     def test_summaries(self):
-        summaries = presentation.get_summaries(self.iq)
+        summaries = scrap.get_summaries(self.iq)
         for i in range(12):
             summary = next(summaries)
             self.assert_valid_summary(summary)
@@ -66,7 +66,7 @@ class TestSummaries(unittest.TestCase):
     def test_summaries_max_pages(self):
         # Check that only one page is fetched
         count = 0
-        for summary in presentation.get_summaries(self.iq, filter=presentation.MaxPagesFilter(1)):
+        for summary in scrap.get_summaries(self.iq, filter=scrap.MaxPagesFilter(1)):
             self.assert_valid_summary(summary)
             # The number of presentation per page to be updated from time to time
             # We expect that the number of presentation will never be greater than
@@ -122,7 +122,7 @@ class TestPresentation(unittest.TestCase):
 
     @test.use_cache
     def test_presentation_java_gc_azul(self):
-        p = presentation.Presentation(self.iq, "Java-GC-Azul-C4")
+        p = scrap.Presentation(self.iq, "Java-GC-Azul-C4")
 
         self.assertValidPresentationMetadata(p.metadata)
 
@@ -131,19 +131,19 @@ class TestPresentation(unittest.TestCase):
         self.assertEqual(p.metadata['auth'], "Gil Tene")
         #self.assertEqual(p.metadata['duration'], 3469)
         self.assertEqual(p.metadata['summary'],
-            "Gil Tene explains how a garbage collector works, covering the fundamentals, mechanism, terminology and metrics. He classifies several GCs, and introduces Azul C4.")
+                         "Gil Tene explains how a garbage collector works, covering the fundamentals, mechanism, terminology and metrics. He classifies several GCs, and introduces Azul C4.")
         self.assertEqual(p.metadata['bio'],
-            "Gil Tene is CTO and co-founder of Azul Systems. He has been involved with virtual machine technologies for the past 20 years and has been building Java technology-based products since 1995. Gil pioneered Azul's Continuously Concurrent Compacting Collector (C4), Java Virtualization, Elastic Memory, and various managed runtime and systems stack technologies.")
+                         "Gil Tene is CTO and co-founder of Azul Systems. He has been involved with virtual machine technologies for the past 20 years and has been building Java technology-based products since 1995. Gil pioneered Azul's Continuously Concurrent Compacting Collector (C4), Java Virtualization, Elastic Memory, and various managed runtime and systems stack technologies.")
         self.assertEqual(p.metadata['about'],
-            'Software is changing the world; QCon aims to empower software development by facilitating the spread of knowledge and innovation in the enterprise software development community; to achieve this, QCon is organized as a practitioner-driven conference designed for people influencing innovation in their teams: team leads, architects, project managers, engineering directors.')
+                         'Software is changing the world; QCon aims to empower software development by facilitating the spread of knowledge and innovation in the enterprise software development community; to achieve this, QCon is organized as a practitioner-driven conference designed for people influencing innovation in their teams: team leads, architects, project managers, engineering directors.')
         self.assertEqual(p.metadata['timecodes'],
-            [3, 15, 73, 143, 227, 259, 343, 349, 540, 629, 752, 755, 822, 913, 1043, 1210, 1290, 1360, 1386,
-             1462, 1511, 1633, 1765, 1892, 1975, 2009, 2057, 2111, 2117, 2192, 2269, 2328, 2348, 2468, 2558,
-             2655, 2666, 2670, 2684, 2758, 2802, 2820, 2827, 2838, 2862, 2913, 2968, 3015, 3056, 3076, 3113,
-             3115, 3135, 3183, 3187, 3247, 3254, 3281, 3303, 3328, 3344, 3360, 3367, 3376, 3411, 3426, 3469])
+                         [3, 15, 73, 143, 227, 259, 343, 349, 540, 629, 752, 755, 822, 913, 1043, 1210, 1290, 1360, 1386,
+                          1462, 1511, 1633, 1765, 1892, 1975, 2009, 2057, 2111, 2117, 2192, 2269, 2328, 2348, 2468, 2558,
+                          2655, 2666, 2670, 2684, 2758, 2802, 2820, 2827, 2838, 2862, 2913, 2968, 3015, 3056, 3076, 3113,
+                          3115, 3135, 3183, 3187, 3247, 3254, 3281, 3303, 3328, 3344, 3360, 3367, 3376, 3411, 3426, 3469])
         self.assertEqual(p.metadata['slides'],
-            [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
-             list(range(1, 49)) + list(range(50, 51)) + list(range(52, 53)) + list(range(55, 65)) + list(range(66, 72))])
+                         [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
+                          list(range(1, 49)) + list(range(50, 51)) + list(range(52, 53)) + list(range(55, 65)) + list(range(66, 72))])
         self.assertEqual(p.metadata['video_url'],
                          "rtmpe://video.infoq.com/cfx/st/")
         self.assertEqual(p.metadata['video_path'],
@@ -155,7 +155,7 @@ class TestPresentation(unittest.TestCase):
 
     @test.use_cache
     def test_presentation_clojure_expression_problem(self):
-        p = presentation.Presentation(self.iq, "Clojure-Expression-Problem")
+        p = scrap.Presentation(self.iq, "Clojure-Expression-Problem")
         self.assertValidPresentationMetadata(p.metadata)
         self.assertTrue(p.metadata['video_path'].startswith("flv:"))
 
@@ -163,4 +163,3 @@ class TestPresentation(unittest.TestCase):
     def test_presentation_latest(self):
         p = test.get_latest_presentation(self.iq)
         self.assertValidPresentationMetadata(p.metadata)
-

@@ -28,8 +28,6 @@ import subprocess
 import sys
 import tempfile
 
-from infoqscraper import utils
-
 from bintest.infoqscraper import TestInfoqscraper
 
 usage_prefix = "usage: infoqscraper presentation"
@@ -119,7 +117,7 @@ class TestArguments(TestInfoqscraper):
             # TODO: Need to find a way to create an alias on win32
             return
 
-        ffmpeg_path = utils.check_output(["which", "ffmpeg"]).strip()
+        ffmpeg_path = subprocess.check_output(["which", "ffmpeg"]).strip()
         tmp_dir = tempfile.mkdtemp()
         try:
             alias_path = os.path.join(tmp_dir, "ffmpeg")
