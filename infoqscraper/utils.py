@@ -24,10 +24,10 @@
 import subprocess
 import sys
 
+from infoqscraper import ConversionError
 
 if sys.hexversion >= 0x02070000:
     check_output = subprocess.check_output
-
 else:
     def _check_output_backport(*popenargs, **kwargs):
         r"""Run command with arguments and return its output as a byte string.
@@ -73,7 +73,7 @@ class SwfConverter(object):
         """ Convert a slide into a PNG image.
 
         OSError is raised if swfrender is not available.
-        An exception is raised if image cannot be created.
+        ConversionError is raised if image cannot be created.
         """
         if not png_path:
             png_path = swf_path.replace(".swf", ".png")
@@ -82,8 +82,9 @@ class SwfConverter(object):
             cmd = [self.swfrender, swf_path, '-o', png_path]
             check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise Exception("Failed to convert SWF file %s.\n"
-                            "\tExit status: %s.\n\tOutput:\n%s" % (swf_path, e.returncode, e.output))
+            raise ConversionError("Failed to convert SWF file %s.\n"
+                                  "\tExit status: %s.\n\tOutput:\n%s"
+                                  % (swf_path, e.returncode, e.output))
 
         return png_path
 

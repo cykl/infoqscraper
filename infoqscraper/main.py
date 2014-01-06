@@ -29,7 +29,7 @@ import six
 import subprocess
 import sys
 
-from infoqscraper import client
+from infoqscraper import client, DownloadError, ConversionError
 from infoqscraper import presentation
 
 app_name = "infoqscraper"
@@ -308,7 +308,7 @@ class PresentationModule(Module):
             with presentation.Downloader(pres, output, **kwargs) as builder:
                 try:
                     builder.create_presentation()
-                except client.DownloadError as e:
+                except (DownloadError, ConversionError) as e:
                     return warn("Failed to create presentation %s: %s" % (output, e), 2)
 
         def __check_dependencies(self, dependencies):

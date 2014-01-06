@@ -27,7 +27,7 @@ import base64
 import bs4
 import datetime
 import errno
-from infoqscraper import client
+from infoqscraper import client, ConversionError
 from infoqscraper import utils
 import os
 import re
@@ -227,10 +227,11 @@ class Downloader(object):
         The audio track is mixed with the slides. The resulting file is saved as self.output
 
         DownloadError is raised if some resources cannot be fetched.
+        ConversionError is raised if the final video cannot be created.
         """
         # Avoid wasting time and bandwidth if we known that conversion will fail.
         if not self.overwrite and os.path.exists(self.output):
-            raise Exception("File %s already exist and --overwrite not specified" % self.output)
+            raise ConversionError("File %s already exist and --overwrite not specified" % self.output)
 
         video = self.download_video()
         raw_slides = self.download_slides()
@@ -368,10 +369,16 @@ class Downloader(object):
         try:
             utils.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise Exception("Failed to create final movie as %s.\n"
-                            "\tExit code: %s\n"
-                            "\tOutput:\n%s"
-                            % (self.output, e.returncode, e.output))
+            msg = "Failed to create final movie as %s.\n" \
+                  "\tExit code: %s\n" \
+                  "\tOutput:\n%s" % (self.output, e.returncode, e.output)
+
+            if self.type != "legacy":
+                msg += "\n Please note that %s output format requires a recent version of ffmpeg and libx264." \
+                       " Perhaps you should check your setup." \
+                       % self.type
+
+            raise ConversionError(msg)
 
     def _convert_slides(self, slides):
         swf_render = utils.SwfConverter(swfrender_path=self.swfrender)

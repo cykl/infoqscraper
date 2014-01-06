@@ -28,7 +28,7 @@ import os
 from six.moves import http_cookiejar
 from six.moves import urllib
 
-from infoqscraper import cache
+from infoqscraper import cache, AuthenticationError, DownloadError
 
 
 def get_url(path, scheme="http"):
@@ -36,14 +36,6 @@ def get_url(path, scheme="http"):
     return scheme + "://www.infoq.com" + path
 
 INFOQ_404_URL = 'http://www.infoq.com/error?sc=404'
-
-
-class DownloadError(Exception):
-    pass
-
-
-class AuthenticationError(Exception):
-    pass
 
 
 class InfoQ(object):
