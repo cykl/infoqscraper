@@ -81,7 +81,7 @@ class TestArguments(TestInfoqscraper):
         open(output_path, 'w').close()
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.run_cmd(self.default_cmd + [short_presentation_id, "-o", output_path])
-        self.assertEquals(cm.exception.returncode, 1)
+        self.assertEquals(cm.exception.returncode, 2)
         self.assertTrue(os.path.exists(output_path))
         self.assertTrue(os.stat(output_path).st_size == 0)
         shutil.rmtree(tmp_dir)

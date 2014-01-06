@@ -369,7 +369,7 @@ def main():
 
     module = module_class()
     try:
-        module.main(infoq_client, args.module_args)
+        return module.main(infoq_client, args.module_args)
     except (ArgumentError, CommandError) as e:
         return warn(e)
 
