@@ -228,6 +228,10 @@ class Downloader(object):
 
         DownloadFailedException is raised if some resources cannot be fetched.
         """
+        # Avoid wasting time and bandwidth if we known that conversion will fail.
+        if not self.overwrite and os.path.exists(self.output):
+            raise Exception("File %s already exist and --overwrite not specified" % self.output)
+
         video = self.download_video()
         raw_slides = self.download_slides()
 
