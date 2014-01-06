@@ -217,8 +217,9 @@ class Converter(object):
             subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             msg = "Failed to create final movie as %s.\n" \
+                  "\tCommand: %s\n" \
                   "\tExit code: %s\n" \
-                  "\tOutput:\n%s" % (self.output, e.returncode, e.output)
+                  "\tOutput:\n%s" % (" ".join(cmd), self.output, e.returncode, e.output)
 
             if self.type != "legacy":
                 msg += "\n Please note that %s output format requires a recent version of ffmpeg and libx264." \
@@ -282,6 +283,8 @@ def swf2png(swf_path, png_path, swfrender_path="swfrender"):
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         raise ConversionError("Failed to convert SWF file %s.\n"
-                              "\tExit status: %s.\n\tOutput:\n%s"
-                              % (swf_path, e.returncode, e.output))
+                              "\tCommand: %s\n"
+                              "\tExit status: %s.\n"
+                              "\tOutput:\n%s"
+                              % (" ".join(cmd), swf_path, e.returncode, e.output))
 
