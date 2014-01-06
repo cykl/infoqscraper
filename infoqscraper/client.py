@@ -99,7 +99,7 @@ class InfoQ(object):
     def fetch_no_cache(self, url):
         """ Fetch the resource specified and return its content.
 
-            DownloadFailedException is raised if the resource cannot be fetched.
+            DownloadError is raised if the resource cannot be fetched.
         """
         try:
 
@@ -112,6 +112,11 @@ class InfoQ(object):
             raise DownloadError("Failed to get %s: %s" % (url, e))
 
     def download(self, url, dir_path, filename=None):
+        """ Download the resources specified by url into dir_path. The resulting
+            file path is returned.
+
+            DownloadError is raised the resources cannot be downloaded.
+        """
         if not filename:
             filename = url.rsplit('/', 1)[1]
         path = os.path.join(dir_path, filename)
@@ -126,10 +131,9 @@ class InfoQ(object):
         """ Download all the resources specified by urls into dir_path. The resulting
             file paths is returned.
 
-            DownloadFailedException is raised if at least one of the resources cannot be downloaded.
+            DownloadError is raised if at least one of the resources cannot be downloaded.
             In the case already downloaded resources are erased.
         """
-
         # TODO: Implement parallel download
         filenames = []
 

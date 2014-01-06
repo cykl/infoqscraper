@@ -226,7 +226,7 @@ class Downloader(object):
 
         The audio track is mixed with the slides. The resulting file is saved as self.output
 
-        DownloadFailedException is raised if some resources cannot be fetched.
+        DownloadError is raised if some resources cannot be fetched.
         """
         # Avoid wasting time and bandwidth if we known that conversion will fail.
         if not self.overwrite and os.path.exists(self.output):
@@ -251,7 +251,7 @@ class Downloader(object):
             The path where the video has been saved.
 
         Raises:
-            DownloadFailedException: If the video cannot be downloaded.
+            DownloadError: If the video cannot be downloaded.
         """
         rvideo_path = self.presentation.metadata['video_path']
 
@@ -272,7 +272,7 @@ class Downloader(object):
             The path where the video has been saved.
 
         Raises:
-            DownloadFailedException: If the video cannot be downloaded.
+            DownloadError: If the video cannot be downloaded.
         """
         video_url = self.presentation.metadata['video_url']
         video_path = self.presentation.metadata['video_path']
@@ -295,7 +295,7 @@ class Downloader(object):
 
         The location of the slides files are returned.
 
-        A DownloadFailedException is raised if at least one of the slides cannot be download..
+        A DownloadError is raised if at least one of the slides cannot be download..
         """
         return self.presentation.client.download_all(self.presentation.metadata['slides'], self.tmp_dir)
 
