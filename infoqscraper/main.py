@@ -261,10 +261,12 @@ class PresentationModule(Module):
 
             index = 0
             for result in results:
-                print("")
-                print("{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d")))
-                print("     Id: {0}".format(result['id']))
-                print("     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8)))
+                tab = ' ' * 8
+                title = "{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
+                print(six.u(""))
+                print(six.u(title))
+                print(six.u("     Id: {0}".format(result['id'])))
+                print(six.u("     Desc: \n{0}{1}").format(tab, fill(result['desc'], width=80, subsequent_indent=tab)))
                 index += 1
 
         def __short_output(self, results):
