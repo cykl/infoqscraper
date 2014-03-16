@@ -219,7 +219,7 @@ class Converter(object):
             msg = "Failed to create final movie as %s.\n" \
                   "\tCommand: %s\n" \
                   "\tExit code: %s\n" \
-                  "\tOutput:\n%s" % (" ".join(cmd), self.output, e.returncode, e.output)
+                  "\tOutput:\n%s" % (self.output, " ".join(cmd), e.returncode, e.output)
 
             if self.type != "legacy":
                 msg += "\n Please note that %s output format requires a recent version of ffmpeg and libx264." \
@@ -286,5 +286,5 @@ def swf2png(swf_path, png_path, swfrender_path="swfrender"):
                               "\tCommand: %s\n"
                               "\tExit status: %s.\n"
                               "\tOutput:\n%s"
-                              % (" ".join(cmd), swf_path, e.returncode, e.output))
+                              % (swf_path, " ".join(cmd), e.returncode, e.output))
 
