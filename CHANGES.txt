@@ -10,6 +10,7 @@
          slower than h264 (~10x)
   - Removed PIL dependency
   - Fix some encoding issues
+  - Fix broken slide download due to a markup change
 
 0.0.8:
   - Fix a regression introduced by 0.0.7, ffmpeg 0.8 does not support -n

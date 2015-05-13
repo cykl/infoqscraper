@@ -111,7 +111,7 @@ class Presentation(object):
             for script in pres_div.find_all('script'):
                 mo = re.search("var\s+slides\s?=\s?new\s+Array.?\(('.+')\)", script.get_text())
                 if mo:
-                    return [client.get_url(slide.replace('\'', '')) for slide in  mo.group(1).split(',')]
+                    return [slide.replace('\'', '') for slide in  mo.group(1).split(',')]
 
         def get_video(pres_div):
             for script in pres_div.find_all('script'):
