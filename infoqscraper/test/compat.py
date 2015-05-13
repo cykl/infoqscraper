@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012, Clément MATHIEU
+# Copyright (c) 2014, Clément MATHIEU
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -22,35 +22,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import re
-import subprocess
-
-from bintest.infoqscraper import TestInfoqscraper
-
-usage_prefix = "usage: infoqscraper cache size"
-
-
-class TestArguments(TestInfoqscraper):
-
-    def setUp(self):
-        self.default_cmd = ["cache", "size"]
-
-    def test_help(self):
-        output = self.run_cmd(self.default_cmd + ["--help"])
-        self.assertTrue(output.startswith(usage_prefix))
-
-    def test_size(self):
-        # TODO: Find a better test
-        # We could use du -sh then compare its output to our.
-        output = self.run_cmd(self.default_cmd)
-        self.assertIsNotNone(re.match('\d{1,4}\.\d{2} \w{2,5}', output))
-
-    def test_extra_arg(self):
-        try:
-            self.run_cmd(self.default_cmd + ["extra_args"])
-            self.fail("Exception expected")
-        except subprocess.CalledProcessError as e:
-            self.assertEqual(e.returncode, 2)
-            print(e.output)
-            self.assertTrue(e.output.decode('utf8').startswith(usage_prefix))
-
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest

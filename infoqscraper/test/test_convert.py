@@ -22,35 +22,35 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import re
-import subprocess
+import os
+import shutil
+import tempfile
 
-from bintest.infoqscraper import TestInfoqscraper
+from infoqscraper import client
+from infoqscraper import convert
+from infoqscraper import scrap
+from infoqscraper import test
 
-usage_prefix = "usage: infoqscraper cache size"
+from infoqscraper.test.compat import unittest
 
 
-class TestArguments(TestInfoqscraper):
+class TestSwfConverter(unittest.TestCase):
 
     def setUp(self):
-        self.default_cmd = ["cache", "size"]
+        self.iq = client.InfoQ()
+        self.tmp_dir = tmp_dir = tempfile.mkdtemp()
 
-    def test_help(self):
-        output = self.run_cmd(self.default_cmd + ["--help"])
-        self.assertTrue(output.startswith(usage_prefix))
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
 
-    def test_size(self):
-        # TODO: Find a better test
-        # We could use du -sh then compare its output to our.
-        output = self.run_cmd(self.default_cmd)
-        self.assertIsNotNone(re.match('\d{1,4}\.\d{2} \w{2,5}', output))
+    @test.use_cache
+    def test_swf(self):
+        # Fetch a slide
+        pres = scrap.Presentation(self.iq, "Java-GC-Azul-C4")
+        swf_path = self.iq.download(pres.metadata['slides'][0], self.tmp_dir)
 
-    def test_extra_arg(self):
-        try:
-            self.run_cmd(self.default_cmd + ["extra_args"])
-            self.fail("Exception expected")
-        except subprocess.CalledProcessError as e:
-            self.assertEqual(e.returncode, 2)
-            print(e.output)
-            self.assertTrue(e.output.decode('utf8').startswith(usage_prefix))
-
+        # SWF -> PNG
+        png_path = swf_path.replace('.swf', '.png')
+        convert.swf2png(swf_path, png_path)
+        stat_info = os.stat(png_path)
+        self.assertGreater(stat_info.st_size, 1000)

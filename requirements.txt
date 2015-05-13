@@ -1,4 +1,2 @@
 BeautifulSoup4
-PIL
-unittest2
-
+six

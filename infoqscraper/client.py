@@ -22,13 +22,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import contextlib
-import cookielib
-from infoqscraper import cache
 import os
-import urllib
-import urllib2
+
+from six.moves import http_cookiejar
+from six.moves import urllib
+
+from infoqscraper import cache
+from infoqscraper import  AuthenticationError, DownloadError
 
 
 def get_url(path, scheme="http"):
@@ -36,14 +37,6 @@ def get_url(path, scheme="http"):
     return scheme + "://www.infoq.com" + path
 
 INFOQ_404_URL = 'http://www.infoq.com/error?sc=404'
-
-
-class DownloadError(Exception):
-    pass
-
-
-class AuthenticationError(Exception):
-    pass
 
 
 class InfoQ(object):
@@ -57,7 +50,7 @@ class InfoQ(object):
     def __init__(self, cache_enabled=False):
         self.authenticated = False
         # InfoQ requires cookies to be logged in. Use a dedicated urllib opener
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http_cookiejar.CookieJar()))
         self.cache = None
         if cache_enabled:
             self.enable_cache()
@@ -77,7 +70,7 @@ class InfoQ(object):
             'password': password,
             'submit-login': '',
         }
-        with contextlib.closing(self.opener.open(url, urllib.urlencode(params))) as response:
+        with contextlib.closing(self.opener.open(url, urllib.parse.urlencode(params))) as response:
             if not "loginAction.jsp" in response.url:
                 raise AuthenticationError("Login failed. Unexpected redirection: %s" % response.url)
             if not "resultMessage=success" in response.url:
@@ -91,14 +84,15 @@ class InfoQ(object):
             if not content:
                 content = self.fetch_no_cache(url)
                 self.cache.put_content(url, content)
-            return content
         else:
-            return self.fetch_no_cache(url)
+            content = self.fetch_no_cache(url)
+
+        return content
 
     def fetch_no_cache(self, url):
         """ Fetch the resource specified and return its content.
 
-            DownloadFailedException is raised if the resource cannot be fetched.
+            DownloadError is raised if the resource cannot be fetched.
         """
         try:
 
@@ -107,16 +101,21 @@ class InfoQ(object):
                 if response.code != 200 or response.url == INFOQ_404_URL:
                     raise DownloadError("%s not found" % url)
                 return response.read()
-        except urllib2.URLError as e:
+        except urllib.error.URLError as e:
             raise DownloadError("Failed to get %s: %s" % (url, e))
 
     def download(self, url, dir_path, filename=None):
+        """ Download the resources specified by url into dir_path. The resulting
+            file path is returned.
+
+            DownloadError is raised the resources cannot be downloaded.
+        """
         if not filename:
             filename = url.rsplit('/', 1)[1]
         path = os.path.join(dir_path, filename)
 
         content = self.fetch(url)
-        with open(path, "w") as f:
+        with open(path, "wb") as f:
             f.write(content)
 
         return path
@@ -125,10 +124,9 @@ class InfoQ(object):
         """ Download all the resources specified by urls into dir_path. The resulting
             file paths is returned.
 
-            DownloadFailedException is raised if at least one of the resources cannot be downloaded.
+            DownloadError is raised if at least one of the resources cannot be downloaded.
             In the case already downloaded resources are erased.
         """
-
         # TODO: Implement parallel download
         filenames = []
 

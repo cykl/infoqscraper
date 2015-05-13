@@ -25,11 +25,14 @@ import argparse
 import os
 import pkg_resources
 import re
+import six
 import subprocess
 import sys
 
 from infoqscraper import client
-from infoqscraper import presentation
+from infoqscraper import convert
+from infoqscraper import scrap
+from infoqscraper import DownloadError, ConversionError
 
 app_name = "infoqscraper"
 try:
@@ -102,7 +105,7 @@ class CacheModule(Module):
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, self.name))
-        parser.add_argument('command', choices = self.commands.keys())
+        parser.add_argument('command', choices = list(self.commands.keys()))
         parser.add_argument('command_args', nargs=argparse.REMAINDER)
         args = parser.parse_args(args=args)
 
@@ -141,15 +144,15 @@ class CacheModule(Module):
             infoq_client.enable_cache()
             size = infoq_client.cache.size
             human_size = self.__humanize(size, 2)
-            print "%s" % human_size
+            print("%s" % human_size)
 
         def __humanize(self, bytes, precision=2):
             suffixes = (
-                (1 << 50L, 'PB'),
-                (1 << 40L, 'TB'),
-                (1 << 30L, 'GB'),
-                (1 << 20L, 'MB'),
-                (1 << 10L, 'kB'),
+                (1 << 50, 'PB'),
+                (1 << 40, 'TB'),
+                (1 << 30, 'GB'),
+                (1 << 20, 'MB'),
+                (1 << 10, 'kB'),
                 (1, 'bytes')
             )
             if bytes == 1:
@@ -178,7 +181,7 @@ class PresentationModule(Module):
 
     def main(self, infoq_client, args):
         parser = argparse.ArgumentParser(prog="%s %s" % (app_name, PresentationModule.name))
-        parser.add_argument('command', choices = self.commands.keys())
+        parser.add_argument('command', choices = list(self.commands.keys()))
         parser.add_argument('command_args', nargs=argparse.REMAINDER)
         args = parser.parse_args(args=args)
 
@@ -194,7 +197,7 @@ class PresentationModule(Module):
         """List available presentations."""
         name = "list"
 
-        class _Filter(presentation.MaxPagesFilter):
+        class _Filter(scrap.MaxPagesFilter):
             """Filter summary according to a pattern.
 
             The number of results and fetched pages can be bounded.
@@ -219,7 +222,7 @@ class PresentationModule(Module):
                     raise StopIteration
 
                 s = super(PresentationModule.PresentationList._Filter, self).filter(p_summaries)
-                s = filter(self._do_match, s)
+                s = list(filter(self._do_match, s))
                 s = s[:(self.max_hits - self.hits)]  # Remove superfluous items
                 self.hits += len(s)
                 return s
@@ -245,7 +248,7 @@ class PresentationModule(Module):
             args = parser.parse_args(args=args)
 
             filter = PresentationModule.PresentationList._Filter(pattern=args.pattern, max_hits=args.max_hits, max_pages=args.max_pages)
-            summaries = presentation.get_summaries(infoq_client, filter=filter)
+            summaries = scrap.get_summaries(infoq_client, filter=filter)
             if args.short:
                 self.__short_output(summaries)
             else:
@@ -258,15 +261,17 @@ class PresentationModule(Module):
 
             index = 0
             for result in results:
-                print
-                print u"{0:>3}. Title: {1} ({2})".format(index, result['title'], result['date'].strftime("%Y-%m-%d"))
-                print u"     Id: {0}".format(result['id'])
-                print u"     Desc: \n{0}{1}".format(' ' * 8, fill(result['desc'], width=80, subsequent_indent=' ' * 8))
+                tab = ' ' * 8
+                date = result['date'].strftime("%Y-%m-%d")
+                print(six.u(""))
+                print(six.u("{0:>3}. Title: {1} ({2})").format(index, result['title'], date))
+                print(six.u("     Id: {0}").format(result['id']))
+                print(six.u("     Desc: \n{0}{1}").format(tab, fill(result['desc'], width=80, subsequent_indent=tab)))
                 index += 1
 
         def __short_output(self, results):
             for result in results:
-                print result['id']
+                print(result['id'])
 
     class PresentationDownload(Command):
         """Download a presentation"""
@@ -278,7 +283,9 @@ class PresentationModule(Module):
             parser.add_argument('-s', '--swfrender', nargs="?", type=str, default="swfrender", help='swfrender binary')
             parser.add_argument('-r', '--rtmpdump',  nargs="?", type=str, default="rtmpdump" , help='rtmpdump binary')
             parser.add_argument('-o', '--output',    nargs="?", type=str, help='output file')
-            parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files.')
+            parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files')
+            parser.add_argument('-t', '--type',      nargs="?", type=str, default="legacy",
+                                help='output type: legacy, h264, h264_overlay')
             parser.add_argument('identifier', help='name of the presentation or url')
             args = parser.parse_args(args)
 
@@ -290,7 +297,7 @@ class PresentationModule(Module):
             output = self.__chose_output(args.output, id)
 
             try:
-                pres = presentation.Presentation(infoq_client, id)
+                pres = scrap.Presentation(infoq_client, id)
             except client.DownloadError as e:
                 return warn("Presentation %s not found. Please check your id or url" % id, 2)
 
@@ -298,13 +305,14 @@ class PresentationModule(Module):
                 "ffmpeg":    args.ffmpeg,
                 "rtmpdump":  args.rtmpdump,
                 "swfrender": args.swfrender,
-                "overwrite": True if args.overwrite else False,
-                }
+                "overwrite": args.overwrite,
+                "type":      args.type,
+            }
 
-            with presentation.Downloader(pres, **kwargs) as builder:
+            with convert.Converter(pres, output, **kwargs) as builder:
                 try:
-                    builder.create_presentation(output_path=output)
-                except client.DownloadError as e:
+                    builder.create_presentation()
+                except (DownloadError, ConversionError) as e:
                     return warn("Failed to create presentation %s: %s" % (output, e), 2)
 
         def __check_dependencies(self, dependencies):
@@ -326,11 +334,11 @@ class PresentationModule(Module):
             if output:
                 return output
 
-            return u"%s.avi" % id
+            return "%s.avi" % id
 
 
 def warn(str, code=1):
-    print >> sys.stderr, str
+    six.print_(str, file=sys.stderr)
     return code
 
 
@@ -350,7 +358,7 @@ def main():
     parser.add_argument('-c', '--cache'    , action="store_true", help="Enable disk caching.")
     parser.add_argument('-V', '--version'  , action="version",    help="Display version",
                         version="%s %s" % (app_name, app_version))
-    parser.add_argument('module', choices=modules.keys())
+    parser.add_argument('module', choices=list(modules.keys()))
     parser.add_argument('module_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -363,7 +371,7 @@ def main():
 
     module = module_class()
     try:
-        module.main(infoq_client, args.module_args)
+        return module.main(infoq_client, args.module_args)
     except (ArgumentError, CommandError) as e:
         return warn(e)
 

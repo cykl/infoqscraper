@@ -21,30 +21,30 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import subprocess
-import bintest
 
-from infoqscraper import utils
+import subprocess
+
+from bintest.infoqscraper import TestInfoqscraper
 
 usage_prefix = "usage: infoqscraper cache"
 
-class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
-    def build_presentation_cmd(self, args):
-        return self.build_cmd([]) + ['cache'] + args
+class TestArguments(TestInfoqscraper):
+
+    def setUp(self):
+        self.defaults_args = ["cache"]
 
     def test_no_arg(self):
-        cmd = self.build_presentation_cmd([])
+        pass
         try:
-            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+            self.run_cmd(self.defaults_args)
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
-            print e.output
-            self.assertTrue(e.output.startswith(usage_prefix))
+            print(e.output)
+            self.assertTrue(e.output.decode('utf-8').startswith(usage_prefix))
 
     def test_help(self):
-        cmd =  self.build_presentation_cmd(['--help'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.defaults_args + ["--help"])
         self.assertTrue(output.startswith(usage_prefix))
 

@@ -21,39 +21,34 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import bintest
-from infoqscraper import client
-from infoqscraper import presentation
-from infoqscraper import utils
-import subprocess
 
+from infoqscraper import client
+from infoqscraper import scrap
+
+from bintest.infoqscraper import TestInfoqscraper
 
 usage_prefix = "usage: infoqscraper presentation"
 
 
-class TestArguments(bintest.infoqscraper.TestInfoqscraper):
+class TestArguments(TestInfoqscraper):
 
-    def build_list_cmd(self, args):
-        return self.build_cmd([]) + ['-c', 'presentation', 'list'] + args
+    def setUp(self):
+        self.default_cmd = ["-c", "presentation", "list"]
 
     def test_help(self):
-        cmd = self.build_list_cmd(['--help'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd + ["--help"])
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_no_arg(self):
-        cmd = self.build_list_cmd([])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd)
         self.assertEqual(output.count("Id: "), 10)
 
     def test_max_hit(self):
-        cmd = self.build_list_cmd(['-n', '1'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd + ["-n", "1"])
         self.assertEqual(output.count("Id: "), 1)
 
     def test_max_pages(self):
-        cmd = self.build_list_cmd(['-m', '1'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd + ["-m", "1"])
         # Nowadays, the /presentations page contains more than 10 entries
         # The number of returned items is then determined by the implicit
         # -n 10 parameter
@@ -61,22 +56,20 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
     def test_pattern(self):
         infoq_client = client.InfoQ(cache_enabled=True)
-        summary = presentation.get_summaries(infoq_client).next()
+        summary = next(scrap.get_summaries(infoq_client))
 
-        cmd = self.build_list_cmd(['-p', summary['title']])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        # Nowadays, the /presentations page contains more than 10 entries
+        output = self.run_cmd(self.default_cmd + ["-p", summary['title']])
         self.assertEqual(output.count("Id: "), 1)
 
     def test_short_output(self):
-        cmd = self.build_list_cmd(['-s'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_cmd + ["-s"])
         self.assertEqual(len(output.strip().split("\n")), 10)
 
     def test_duplicates(self):
         # Try to spot bugs in the summary fetcher.
         # Sometimes the same summary is returned several times
-        cmd = self.build_list_cmd(['-n', '30', '-s'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT).strip()
+        output = self.run_cmd(self.default_cmd + ["-n", "30", "-s"])
         ids = output.split('\n')
         id_set = set(ids)
         self.assertEqual(len(ids), len(id_set))

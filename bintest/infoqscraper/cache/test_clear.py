@@ -21,31 +21,32 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import bintest
-from infoqscraper import client
-from infoqscraper import utils
 import os
 import shutil
 import subprocess
 import tempfile
 
+from infoqscraper import client
+
+from bintest.infoqscraper import TestInfoqscraper
+
 
 usage_prefix = "usage: infoqscraper cache clear"
 
-class TestArguments(bintest.infoqscraper.TestInfoqscraper):
 
-    def build_clear_cmd(self, args):
-        return self.build_cmd([]) + ['cache', 'clear'] + args
+class TestArguments(TestInfoqscraper):
+
+    def setUp(self):
+        self.default_args = ['cache', 'clear']
 
     def test_help(self):
-        cmd =  self.build_clear_cmd(['--help'])
-        output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+        output = self.run_cmd(self.default_args + ['--help'])
         self.assertTrue(output.startswith(usage_prefix))
 
     def test_clear(self):
         # Ensure there is at least one file in the cache dir
         infoq_client = client.InfoQ(cache_enabled=True)
-        infoq_client.cache.put_content("testfile", "content")
+        infoq_client.cache.put_content("testfile", b"content")
 
         # Backup the cache dir
         backup_dir = infoq_client.cache.dir
@@ -53,8 +54,7 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
         shutil.copytree(backup_dir, tmp_dir)
 
         try:
-            cmd = self.build_clear_cmd([])
-            utils.check_output(cmd, stderr=subprocess.STDOUT)
+            self.run_cmd(self.default_args)
             self.assertFalse(os.path.exists(backup_dir))
             # Now restore the cache dir
             shutil.copytree(tmp_dir, backup_dir)
@@ -62,12 +62,11 @@ class TestArguments(bintest.infoqscraper.TestInfoqscraper):
             shutil.rmtree(os.path.dirname(tmp_dir))
 
     def test_extra_arg(self):
-        cmd = self.build_clear_cmd(["extra_args"])
         try:
-            output = utils.check_output(cmd, stderr=subprocess.STDOUT)
+            self.run_cmd(self.default_args + ['extra_args'])
             self.fail("Exception expected")
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 2)
-            print e.output
-            self.assertTrue(e.output.startswith(usage_prefix))
+            print(e.output)
+            self.assertTrue(e.output.decode('utf8').startswith(usage_prefix))
 

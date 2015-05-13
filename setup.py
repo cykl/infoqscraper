@@ -29,14 +29,15 @@ import sys
 install_requires=[
     "BeautifulSoup4",
     "html5lib",
-    "PIL",
+    "six",
 ]
+
 if sys.version_info < (2, 7):
     install_requires += ['argparse']
 
 
 setup(
-    version="0.0.8",
+    version="0.1.0",
     name="infoqscraper",
 
     description="A Web scraper for www.InfoQ.com",
@@ -54,6 +55,7 @@ infoqscraper allows to scrap the website, download the required resources and bu
     classifiers=[
       "Programming Language :: Python",
       "Programming Language :: Python :: 2",
+      "Programming Language :: Python :: 3",
       "Topic :: Internet :: WWW/HTTP",
     ],
 

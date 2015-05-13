@@ -21,14 +21,17 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from infoqscraper import cache
+
 import os
 import shutil
 import tempfile
-import unittest2
+
+from infoqscraper import cache
+
+from infoqscraper.test.compat import unittest
 
 
-class TestCache(unittest2.TestCase):
+class TestCache(unittest.TestCase):
 
     def setUp(self):
         self.cache = cache.XDGCache()
@@ -44,45 +47,45 @@ class TestCache(unittest2.TestCase):
 
     def test_simple_content_add(self):
         url = "http://example.com/foo"
-        content = "content"
+        content = b"content"
         self.assertIsNone(self.cache.get_path(url))
         self.cache.put_content(url, content)
         self.assertEqual(self.cache.get_content(url), content)
-        with open(self.cache.get_path(url), 'r') as f:
+        with open(self.cache.get_path(url), 'rb') as f:
             self.assertEqual(f.read(), content)
 
     def test_simple_path_add(self):
         url = "http://example.com/foo"
-        content = "content"
+        content = b"content"
         tmp = tempfile.mktemp()
-        with open(tmp, 'w') as f:
+        with open(tmp, 'wb') as f:
             f.write(content)
 
         self.assertIsNone(self.cache.get_path(url))
         self.cache.put_path(url, tmp)
         self.assertEqual(self.cache.get_content(url), content)
-        with open(self.cache.get_path(url), 'r') as f:
+        with open(self.cache.get_path(url), 'rb') as f:
             self.assertEqual(f.read(), content)
         os.unlink(tmp)
 
     def test_update(self):
         url = "http://example.com/foo"
-        content = "V1"
+        content = b"V1"
         self.cache.put_content(url, content)
         self.assertEqual(self.cache.get_content(url), content)
-        content = "V2"
+        content = b"V2"
         self.cache.put_content(url, content)
         self.assertEqual(self.cache.get_content(url), content)
-        content = "V3"
+        content = b"V3"
         tmp = tempfile.mktemp()
-        with open(tmp, 'w') as f:
+        with open(tmp, 'wb') as f:
             f.write(content)
         self.cache.put_path(url, tmp)
         self.assertEqual(self.cache.get_content(url), content)
 
     def test_clear(self):
         url = "http://example.com/foo"
-        content = "V1"
+        content = b"V1"
         self.cache.put_content(url, content)
         self.assertEqual(self.cache.get_content(url), content)
         self.cache.clear()
@@ -92,7 +95,7 @@ class TestCache(unittest2.TestCase):
 
     def test_size(self):
         url = "http://example.com/foo"
-        content = "x" * 1026
+        content = b"x" * 1026
         self.cache.put_content(url, content)
         size = self.cache.size
         self.assertEqual(size, 1026)

@@ -21,55 +21,23 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from infoqscraper import client
-from infoqscraper import presentation
-from infoqscraper import test
-from infoqscraper import utils
+
 import os
-import shutil
-import tempfile
-import unittest2
 import subprocess
 
 
-class TestCheckOutputBackport(unittest2.TestCase):
+from infoqscraper.test.compat import unittest
+
+
+class TestCheckOutputBackport(unittest.TestCase):
 
     def test_ok(self):
-        utils.check_output(["python", "-h"])
+        subprocess.check_output(["python", "-h"])
 
     def test_error(self):
         try:
-            with open(os.devnull, "w") as fnull:
-                utils.check_output(["python", "--foo"], stderr=subprocess.STDOUT)
+            with open(os.devnull, "w"):
+                subprocess.check_output(["python", "--foo"], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             self.assertEquals(e.returncode, 2)
 
-
-class TestSwfConverter(unittest2.TestCase):
-
-    def setUp(self):
-        self.iq = client.InfoQ()
-        self.tmp_dir = tmp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp_dir)
-
-    @test.use_cache
-    def test_swf(self):
-        converter = utils.SwfConverter()
-
-        # Fetch a slide
-        pres = presentation.Presentation(self.iq, "Java-GC-Azul-C4")
-        swf_path = self.iq.download(pres.metadata['slides'][0], self.tmp_dir)
-
-        # SWF -> PNG
-        png_path = swf_path.replace('.swf', '.png')
-        converter.to_png(swf_path, png_path)
-        stat_info = os.stat(png_path)
-        self.assertGreater(stat_info.st_size, 1000)
-
-        # SWF -> JPEG
-        jpg_path = swf_path.replace('.swf', '.jpg')
-        converter.to_jpeg(swf_path, jpg_path)
-        stat_info = os.stat(jpg_path)
-        self.assertGreater(stat_info.st_size, 1000)

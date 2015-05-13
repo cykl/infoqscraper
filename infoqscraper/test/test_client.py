@@ -21,15 +21,18 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from infoqscraper import client
-from infoqscraper import test
+
 import os
 import shutil
 import tempfile
-import unittest2
+
+from infoqscraper import client
+from infoqscraper import test
+
+from infoqscraper.test.compat import unittest
 
 
-class TestLogin(unittest2.TestCase):
+class TestLogin(unittest.TestCase):
     def setUp(self):
         self.iq = client.InfoQ()
 
@@ -46,7 +49,7 @@ class TestLogin(unittest2.TestCase):
         self.assertFalse(self.iq.authenticated)
 
 
-class TestFetch(unittest2.TestCase):
+class TestFetch(unittest.TestCase):
 
     def setUp(self):
         self.iq = client.InfoQ()
@@ -55,7 +58,7 @@ class TestFetch(unittest2.TestCase):
     def test_fetch(self):
         p = test.get_latest_presentation(self.iq)
         content = self.iq.fetch(p.metadata['slides'][0])
-        self.assertIsInstance(content, basestring)
+        self.assertIsInstance(content, bytes)
         self.assertGreater(len(content), 1000)
 
     @test.use_cache
@@ -66,7 +69,7 @@ class TestFetch(unittest2.TestCase):
     def test_fetch_wo_cache(self):
         p = test.get_latest_presentation(self.iq)
         content = self.iq.fetch(p.metadata['slides'][0])
-        self.assertIsInstance(content, basestring)
+        self.assertIsInstance(content, bytes)
         self.assertGreater(len(content), 1000)
 
     def test_fetch_error_wo_cache(self):
@@ -77,7 +80,7 @@ class TestFetch(unittest2.TestCase):
     def test_fetch_no_cache(self):
         p = test.get_latest_presentation(self.iq)
         content = self.iq.fetch_no_cache(p.metadata['slides'][0])
-        self.assertIsInstance(content, basestring)
+        self.assertIsInstance(content, bytes)
         self.assertGreater(len(content), 1000)
 
     @test.use_cache
@@ -86,7 +89,7 @@ class TestFetch(unittest2.TestCase):
             self.iq.fetch_no_cache(client.get_url("/IDONOTEXIST"))
 
 
-class TestDownload(unittest2.TestCase):
+class TestDownload(unittest.TestCase):
 
     def setUp(self):
         self.iq = client.InfoQ()
