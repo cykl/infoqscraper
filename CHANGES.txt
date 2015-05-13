@@ -9,6 +9,7 @@
          Display both the slides and the speake. Use x264, encoding is much
          slower than h264 (~10x)
   - Removed PIL dependency
+  - Fix some encoding issues
 
 0.0.8:
   - Fix a regression introduced by 0.0.7, ffmpeg 0.8 does not support -n
