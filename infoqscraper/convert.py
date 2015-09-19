@@ -125,16 +125,23 @@ class Converter(object):
         video_url = self.presentation.metadata['video_url']
         video_path = self.presentation.metadata['video_path']
 
-        try:
-            cmd = [self.rtmpdump, '-q', '-r', video_url, '-y', video_path, "-o", self._video_path]
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
+        # After a while, when downloading a long video (> 1h), the RTMP server seems to reset the connection (rtmpdump
+        # returns exit code 2). The only way to get the full stream is to resume the download.
+        resume_download = True
+        while resume_download:
             try:
-                os.unlink(self._video_path)
-            except OSError:
-                pass
-            raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s.\n\tOutput:\n%s"
-                                       % (video_url, e.returncode, e.output))
+                cmd = [self.rtmpdump, '-q', '-e', '-r', video_url, '-y', video_path, "-o", self._video_path]
+                subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+                resume_download = False
+            except subprocess.CalledProcessError as e:
+                if e.returncode != 2:
+                    try:
+                        os.unlink(self._video_path)
+                    except OSError:
+                        pass
+
+                    raise client.DownloadError("Failed to download video at %s: rtmpdump exited with %s.\n\tOutput:\n%s"
+                                           % (video_url, e.returncode, e.output))
 
         return self._video_path
 
