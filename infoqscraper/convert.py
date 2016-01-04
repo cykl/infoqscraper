@@ -199,10 +199,10 @@ class Converter(object):
             "-filter_complex",
             "".join([
                 "color=size=1280x720:c=Black [base];",
-                "[0:v] setpts=PTS-STARTPTS, scale=320x240 [speaker];",
+                "[0:v] setpts=PTS-STARTPTS, scale=w=320:h=-1 [speaker];",
                 "[1:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[slides];",
                 "[base][slides]  overlay=shortest=1:x=0:y=0 [tmp1];",
-                "[tmp1][speaker] overlay=shortest=1:x=main_w-320:y=main_h-240",
+                "[tmp1][speaker] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h",
                 ]),
             "-acodec", "libmp3lame", "-ab", "92k",
             "-vcodec", "libx264", "-profile:v", "baseline", "-preset", "fast", "-level", "3.0", "-crf", "28",
