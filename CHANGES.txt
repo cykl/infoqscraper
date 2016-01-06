@@ -1,3 +1,9 @@
+0.1.2: (2016-01-06)
+  -  Proportional scale for the speaker overlay (Ivan Kurnosov)
+
+0.1.1: (2015-09-28)
+  - Fix rmtpdump issue with long presentation (> 50 minutes)
+
 0.1.0:
   - Add support of several output type
      * legacy:
