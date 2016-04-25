@@ -225,8 +225,13 @@ class Converter(object):
         timings = self.presentation.metadata['demo_timings'][:]
         if len(timings) == 0:
             timings.insert(0, 0)
+
         if timings[0] != 0:
+            slides_first = True
             timings.insert(0, 0)
+        else:
+            slides_first = False
+
         timings.append(float('inf'))
 
         inputs = []
@@ -243,11 +248,14 @@ class Converter(object):
                 inputs += ["-t", str(duration)]
             inputs += ["-i", video]
 
-            if i % 2 == 0:
+            if (i % 2 == 0) == slides_first:
                 inputs += [
                     "-f", "image2", "-r", "1", "-s", "hd720", "-start_number", str(left_range), "-i", frame_pattern
                 ]
                 stream_id = i / 2 * 3
+                if not slides_first:
+                    stream_id += 1
+
                 filter_complex += [
                     "[{0:d}:v] setpts=PTS-STARTPTS, scale=w=320:h=-1 [sp-{1:d}];".format(stream_id, i),
                     "[{0:d}:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[sl-{1:d}];".format(stream_id + 1, i),
@@ -256,7 +264,9 @@ class Converter(object):
                     "[bsl-{0:d}][sp-{0:d}] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h [c-{0:d}];".format(i)
                 ]
             else:
-                stream_id = i / 2 * 3 + 2
+                stream_id = i / 2 * 3
+                if slides_first:
+                    stream_id += 2
                 filter_complex += [
                     "[{0:d}:v] scale='if(gt(a,16/9),1280,-1)':'if(gt(a,16/9),-1,720)' [c-{1:d}];".format(stream_id, i)
                 ]
