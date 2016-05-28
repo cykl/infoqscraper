@@ -270,7 +270,7 @@ class Converter(object):
             "-r", str(fps),
             "-acodec", "libmp3lame", "-ab", "92k",
             "-vcodec", "libx264", "-profile:v", "baseline", "-preset", "fast", "-level", "3.0", "-crf", "28",
-            "-n",
+            "-y" if self.overwrite else "-n",
             self.output
         ]
 
