@@ -285,7 +285,7 @@ class PresentationModule(Module):
             parser.add_argument('-o', '--output',    nargs="?", type=str, help='output file')
             parser.add_argument('-y', '--overwrite', action="store_true", help='Overwrite existing video files')
             parser.add_argument('-t', '--type',      nargs="?", type=str, default="legacy",
-                                help='output type: legacy, h264, h264_overlay, h264_overlay_demo')
+                                help='output type: legacy, h264, h264_overlay')
             parser.add_argument('identifier', help='name of the presentation or url')
             args = parser.parse_args(args)
 

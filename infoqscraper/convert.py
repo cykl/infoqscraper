@@ -192,26 +192,7 @@ class Converter(object):
             self.output
         ]
 
-    def _ffmpeg_h264_overlay(self, audio, frame_pattern):
-        return [
-            self.ffmpeg, "-v", "error",
-            "-i", audio,
-            "-f", "image2", "-r", "1", "-s", "hd720", "-i", frame_pattern,
-            "-filter_complex",
-            "".join([
-                "color=size=1280x720:c=Black [base];",
-                "[0:v] setpts=PTS-STARTPTS, scale=w=320:h=-1 [speaker];",
-                "[1:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[slides];",
-                "[base][slides]  overlay=shortest=1:x=0:y=0 [tmp1];",
-                "[tmp1][speaker] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h",
-                ]),
-            "-acodec", "libmp3lame", "-ab", "92k",
-            "-vcodec", "libx264", "-profile:v", "baseline", "-preset", "fast", "-level", "3.0", "-crf", "28",
-            "-y" if self.overwrite else "-n",
-            self.output
-        ]
-
-    def _ffmpeg_h264_overlay_demo(self, video, frame_pattern):
+    def _ffmpeg_h264_overlay(self, video, frame_pattern):
         cmd = [self.ffmpeg, "-i", video]
         video_details = ""
         try:
@@ -302,8 +283,6 @@ class Converter(object):
             cmd = self._ffmpeg_h264(audio, frame_pattern)
         elif self.type == "h264_overlay":
             cmd = self._ffmpeg_h264_overlay(audio, frame_pattern)
-        elif self.type == "h264_overlay_demo":
-            cmd = self._ffmpeg_h264_overlay_demo(audio, frame_pattern)
         else:
             raise Exception("Unknown output type %s" % self.type)
 
