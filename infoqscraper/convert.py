@@ -26,14 +26,12 @@ import errno
 import os
 import re
 import shutil
+import six
 import subprocess
 import tempfile
 
 from infoqscraper import client
 from infoqscraper import ConversionError
-
-from six.moves import http_cookiejar
-from six.moves import urllib
 
 
 class Converter(object):
@@ -200,9 +198,8 @@ class Converter(object):
         except subprocess.CalledProcessError as e:
             video_details = e.output
 
-        fps_match = re.search("\S+(?=\s+tbr)", video_details)
+        fps_match = re.search(six.b('\S+(?=\s+tbr)'), video_details)
         fps = float(fps_match.group(0))
-
         timings = self.presentation.metadata['demo_timings'][:]
 
         if len(timings) == 0 or timings[0] != 0:
@@ -231,7 +228,7 @@ class Converter(object):
                 inputs += [
                     "-f", "image2", "-r", "1", "-s", "hd720", "-start_number", str(left_range), "-i", frame_pattern
                 ]
-                stream_id = i / 2 * 3
+                stream_id = i // 2 * 3
                 if not slides_first:
                     stream_id += 1
 
@@ -261,9 +258,7 @@ class Converter(object):
             filter_script_file.write(" ".join(concat))
 
         cmd = [self.ffmpeg, "-v", "error"]
-
         cmd += inputs
-
         cmd += [
             "-filter_complex_script", filter_script_path,
             "-map", "[v]", "-map", "[a]",
