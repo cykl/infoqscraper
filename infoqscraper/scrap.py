@@ -207,7 +207,7 @@ class _RightBarPage(object):
         except AttributeError:
             url = client.get_url("/presentations/%s" % self.index)
             content = self.client.fetch_no_cache(url).decode('utf-8')
-            self._soup = bs4.BeautifulSoup(content)
+            self._soup = bs4.BeautifulSoup(content, "html.parser")
 
             return self._soup
 
