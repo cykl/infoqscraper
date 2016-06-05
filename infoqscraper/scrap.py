@@ -137,6 +137,13 @@ class Presentation(object):
         def get_about(div):
             return div.find('p', id="conference").get_text(strip=True)
 
+        def get_demo_timings(pres_div):
+            for script in pres_div.find_all('script'):
+                timings = re.search("demoTimings\s+=\s+'([^']+)", script.get_text())
+                if timings:
+                    return map(int, timings.group(1).split(','))
+            return []
+
         def add_pdf_if_exist(metadata, pres_div):
             # The markup is not the same if authenticated or not
             form = pres_div.find('form', id="pdfForm")
@@ -165,6 +172,7 @@ class Presentation(object):
                 'date' : get_date(pres_div),
                 'auth' : get_author(pres_div),
                 'timecodes': get_timecodes(self.soup),
+                'demo_timings': get_demo_timings(self.soup),
                 'slides': get_slides(self.soup),
                 'video_url': six.u("rtmpe://video.infoq.com/cfx/st/"),
                 'video_path': get_video(self.soup),

@@ -24,6 +24,7 @@
 
 import errno
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -191,24 +192,89 @@ class Converter(object):
             self.output
         ]
 
-    def _ffmpeg_h264_overlay(self, audio, frame_pattern):
-        return [
-            self.ffmpeg, "-v", "error",
-            "-i", audio,
-            "-f", "image2", "-r", "1", "-s", "hd720", "-i", frame_pattern,
-            "-filter_complex",
-            "".join([
-                "color=size=1280x720:c=Black [base];",
-                "[0:v] setpts=PTS-STARTPTS, scale=w=320:h=-1 [speaker];",
-                "[1:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[slides];",
-                "[base][slides]  overlay=shortest=1:x=0:y=0 [tmp1];",
-                "[tmp1][speaker] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h",
-                ]),
+    def _ffmpeg_h264_overlay(self, video, frame_pattern):
+        cmd = [self.ffmpeg, "-i", video]
+        video_details = ""
+        try:
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            video_details = e.output
+
+        fps_match = re.search("\S+(?=\s+tbr)", video_details)
+        fps = float(fps_match.group(0))
+
+        timings = self.presentation.metadata['demo_timings'][:]
+
+        if len(timings) == 0 or timings[0] != 0:
+            slides_first = True
+            timings.insert(0, 0)
+        else:
+            slides_first = False
+
+        timings.append(float('inf'))
+
+        inputs = []
+        filter_complex = []
+        concat = []
+
+        for i, right_range in enumerate(timings[1:]):
+            left_range = timings[i]
+            duration = right_range - left_range
+
+            if left_range > 0:
+                inputs += ["-ss", str(left_range)]
+            if right_range != float('inf'):
+                inputs += ["-t", str(duration)]
+            inputs += ["-i", video]
+
+            if (i % 2 == 0) == slides_first:
+                inputs += [
+                    "-f", "image2", "-r", "1", "-s", "hd720", "-start_number", str(left_range), "-i", frame_pattern
+                ]
+                stream_id = i / 2 * 3
+                if not slides_first:
+                    stream_id += 1
+
+                filter_complex += [
+                    "[{0:d}:v] setpts=PTS-STARTPTS, scale=w=320:h=-1 [sp-{1:d}];".format(stream_id, i),
+                    "[{0:d}:v] setpts=PTS-STARTPTS, scale=w=1280-320:h=-1[sl-{1:d}];".format(stream_id + 1, i),
+                    "color=size=1280x720:c=Black [b-{0:d}];".format(i),
+                    "[b-{0:d}][sl-{0:d}] overlay=shortest=1:x=0:y=0 [bsl-{0:d}];".format(i),
+                    "[bsl-{0:d}][sp-{0:d}] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h [c-{0:d}];".format(i)
+                ]
+            else:
+                stream_id = i / 2 * 3
+                if slides_first:
+                    stream_id += 2
+                filter_complex += [
+                    "[{0:d}:v] scale='if(gt(a,16/9),1280,-1)':'if(gt(a,16/9),-1,720)' [c-{1:d}];".format(stream_id, i)
+                ]
+
+            concat += ["[c-{0:d}] [{1:d}:a:0]".format(i, stream_id)]
+
+        concat += ["concat=n={0:d}:v=1:a=1 [v] [a]".format(len(timings) - 1)]
+
+        filter_script_path = os.path.join(self.tmp_dir, "filter")
+        with open(filter_script_path, 'w') as filter_script_file:
+            filter_script_file.write("\n".join(filter_complex))
+            filter_script_file.write("\n")
+            filter_script_file.write(" ".join(concat))
+
+        cmd = [self.ffmpeg, "-v", "error"]
+
+        cmd += inputs
+
+        cmd += [
+            "-filter_complex_script", filter_script_path,
+            "-map", "[v]", "-map", "[a]",
+            "-r", str(fps),
             "-acodec", "libmp3lame", "-ab", "92k",
             "-vcodec", "libx264", "-profile:v", "baseline", "-preset", "fast", "-level", "3.0", "-crf", "28",
             "-y" if self.overwrite else "-n",
             self.output
         ]
+
+        return cmd
 
     def _assemble(self, audio, frame_pattern):
         if self.type == "legacy":
@@ -220,8 +286,11 @@ class Converter(object):
         else:
             raise Exception("Unknown output type %s" % self.type)
 
+        self._run_command(cmd)
+
+    def _run_command(self, cmd):
         try:
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             msg = "Failed to create final movie as %s.\n" \
                   "\tCommand: %s\n" \

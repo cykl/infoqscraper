@@ -1,7 +1,8 @@
 0.1.3:
+  - Add support of demos to h264_overlay output (Ivan Kurnosov)
 
 0.1.2: (2016-01-06)
-  -  Proportional scale for the speaker overlay (Ivan Kurnosov)
+  - Proportional scale for the speaker overlay (Ivan Kurnosov)
 
 0.1.1: (2015-09-28)
   - Fix rmtpdump issue with long presentation (> 50 minutes)
