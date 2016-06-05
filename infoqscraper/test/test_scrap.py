@@ -100,13 +100,13 @@ class TestPresentation(unittest.TestCase):
         prev = -1
         for t in m['timecodes']:
             self.assertIsInstance(t, int)
-            self.assertGreater(t, prev)
+            self.assertGreaterEqual(t, prev)
             prev = t
 
         self.assertIsInstance(m['slides'], list)
         for s in m['slides']:
             self.assertIsInstance(s, six.string_types)
-            self.assertTrue(s.startswith("http://"))
+            self.assertTrue(s.startswith("https://"))
         self.assertEqual(len(m['timecodes']), len(m['slides']) + 1)
 
         self.assertIsInstance(m['video_url'], six.string_types)
@@ -141,9 +141,12 @@ class TestPresentation(unittest.TestCase):
                           1462, 1511, 1633, 1765, 1892, 1975, 2009, 2057, 2111, 2117, 2192, 2269, 2328, 2348, 2468, 2558,
                           2655, 2666, 2670, 2684, 2758, 2802, 2820, 2827, 2838, 2862, 2913, 2968, 3015, 3056, 3076, 3113,
                           3115, 3135, 3183, 3187, 3247, 3254, 3281, 3303, 3328, 3344, 3360, 3367, 3376, 3411, 3426, 3469])
-        self.assertEqual(p.metadata['slides'],
-                         [client.get_url("/resource/presentations/Java-GC-Azul-C4/en/slides/%s.swf" % s) for s in
-                          list(range(1, 49)) + list(range(50, 51)) + list(range(52, 53)) + list(range(55, 65)) + list(range(66, 72))])
+
+        slide_indices = list(range(1, 49)) + list(range(50, 51)) + list(range(52, 53)) + list(range(55, 65)) + list(range(66, 72))
+        self.assertEqual(len(slide_indices), len(p.metadata['slides']))
+        for suffix in p.metadata['slides']:
+            self.assertTrue("/resource/presentations/Java-GC-Azul-C4/en/slides/" in suffix)
+
         self.assertEqual(p.metadata['video_url'],
                          "rtmpe://video.infoq.com/cfx/st/")
         self.assertEqual(p.metadata['video_path'],

@@ -1,0 +1,17 @@
+sudo: required
+dist: trusty
+language: python
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+before_install:
+  - sudo add-apt-repository ppa:mc3man/trusty-media -y
+  - sudo apt-get update  -qq
+  - sudo apt-get install -qq ffmpeg rtmpdump swftools 
+install: 
+  - "pip install -r requirements.txt"
+script: 
+  - export PYTHONPATH=.:$PYTHONPATH
+  - nosetests
