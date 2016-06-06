@@ -141,7 +141,7 @@ class Presentation(object):
             for script in pres_div.find_all('script'):
                 timings = re.search("demoTimings\s+=\s+'([^']+)", script.get_text())
                 if timings:
-                    return map(int, timings.group(1).split(','))
+                    return [int(t) for t in timings.group(1).split(',')]
             return []
 
         def add_pdf_if_exist(metadata, pres_div):

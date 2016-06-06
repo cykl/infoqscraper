@@ -166,3 +166,9 @@ class TestPresentation(unittest.TestCase):
     def test_presentation_latest(self):
         p = test.get_latest_presentation(self.iq)
         self.assertValidPresentationMetadata(p.metadata)
+
+    @test.use_cache
+    def test_demo_timings_must_contain_a_list(self):
+        p = scrap.Presentation(self.iq, "immutable-infrastructure")
+        self.assertIsInstance(p.metadata['demo_timings'], list)
+
