@@ -240,7 +240,7 @@ class Converter(object):
                     "[bsl-{0:d}][sp-{0:d}] overlay=shortest=1:x=main_w-320:y=main_h-overlay_h [c-{0:d}];".format(i)
                 ]
             else:
-                stream_id = i / 2 * 3
+                stream_id = i // 2 * 3
                 if slides_first:
                     stream_id += 2
                 filter_complex += [
