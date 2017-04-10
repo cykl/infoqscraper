@@ -99,7 +99,7 @@ class Presentation(object):
                 raise Exception("Failed to extract date (markup changed?)")
 
         def get_author(pres_div):
-            return pres_div.find('span', class_='author_general').contents[1].get_text().strip()
+            return pres_div.find('span', class_='authors-list').find('a').get_text().strip()
 
         def get_timecodes(pres_div):
             for script in pres_div.find_all('script'):
