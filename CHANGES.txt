@@ -1,4 +1,6 @@
-0.1.5:
+0.1.6:
+
+0.1.5: (2017-04-10)
   - Fix presentation download (markup change)
 
 0.1.4: (2016-06-06)
