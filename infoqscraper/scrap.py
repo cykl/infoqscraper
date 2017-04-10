@@ -91,15 +91,15 @@ class Presentation(object):
             return pres_div.find('h1', class_="general").div.get_text().strip()
 
         def get_date(pres_div):
-            str = pres_div.find('span', class_='author_general').contents[2]
-            str = str.replace('\n',   ' ')
-            str = str.replace(six.u('\xa0'), ' ')
-            str = str.split("on ")[-1]
-            str = str.strip()
-            return datetime.datetime.strptime(str, "%b %d, %Y")
+            strings = ''.join(pres_div.find('span', class_='author_general').strings)
+            match = re.search('on[\n ]+(.*\d{4})', strings)
+            if match:
+                return datetime.datetime.strptime(match.group(1), "%b %d, %Y")
+            else:
+                raise Exception("Failed to extract date (markup changed?)")
 
         def get_author(pres_div):
-            return pres_div.find('span', class_='author_general').contents[1].get_text().strip()
+            return pres_div.find('span', class_='authors-list').find('a').get_text().strip()
 
         def get_timecodes(pres_div):
             for script in pres_div.find_all('script'):
